@@ -101,9 +101,6 @@ namespace Midif {
 		}
 		
 		public MidiNote[] GetMidiNotesAtSample (uint sample) {
-			if (!HasMidiNoteAtSample(sample)) {
-				return null;
-			}
 			return sampleDictionary[sample].ToArray();
 		}
 	}

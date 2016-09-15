@@ -16,7 +16,7 @@ namespace Midif {
 		
 		public override double GetRawSample (int note, double time) {
 			double frequencyFactor = WaveHelper.GetFrequencyFactor(note);
-			return WaveHelper.GetWave(cWaveType, cFrequency * frequencyFactor, time) * (1.0 + mIndex * WaveHelper.GetWave(mWaveType, mFrequency * frequencyFactor, time));
+			return WaveHelper.GetWave(cWaveType, time * cFrequency * frequencyFactor) * (1.0 + mIndex * WaveHelper.GetWave(mWaveType, time * mFrequency * frequencyFactor));
 		}
 	}
 }

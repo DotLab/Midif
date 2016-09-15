@@ -1,12 +1,13 @@
 namespace Midif {
-	public class FmInstrument : EnvelopedInstrument {
-		public readonly WaveType cWaveType;
-		public readonly WaveType mWaveType;
-		public readonly double cFrequency;
-		public readonly double mFrequency;
-		public readonly double mIndex;
+	[System.Serializable]
+	public class PmInstrument : EnvelopedInstrument {
+		public WaveType cWaveType;
+		public WaveType mWaveType;
+		public double cFrequency;
+		public double mFrequency;
+		public double mIndex;
 		
-		public FmInstrument (IEnvelope envelope, WaveType cWaveType, double cFrequency, WaveType mWaveType, double mFrequency, double mIndex) : base(envelope) {
+		public PmInstrument (IEnvelope envelope, WaveType cWaveType, double cFrequency, WaveType mWaveType, double mFrequency, double mIndex) : base(envelope) {
 			this.cWaveType = cWaveType;
 			this.mWaveType = mWaveType;
 			this.cFrequency = cFrequency;

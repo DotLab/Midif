@@ -1,4 +1,5 @@
 namespace Midif {
+	[System.Serializable]
 	public class Envelope : IEnvelope {
 		public double Delay;
 		public double Attack;
@@ -41,6 +42,10 @@ namespace Midif {
 
 		public double GetEnvelope (double onTime, double offTime) {
 			return offTime < Release ? (1 - offTime / Release) * GetEnvelope(onTime) : 0;
+		}
+
+		public bool IsEnded (double offTime) {
+			return offTime > Release;
 		}
 	}
 }

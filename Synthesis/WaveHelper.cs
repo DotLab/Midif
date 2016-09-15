@@ -17,34 +17,38 @@ namespace Midif {
 			return frequencyFactorMap[note];
 		}
 
-		public static double GetWave (WaveType waveType, double frequency, double time) {
+		public static double GetWave (WaveType waveType, double time) {
 			switch (waveType) {
 			case WaveType.Sine:
-				return GetSine(frequency, time);
+				return GetSine(time);
 			case WaveType.Square:
-				return GetSquare(frequency, time);
+				return GetSquare(time);
 			case WaveType.Sawtooth:
-				return GetSawtooth(frequency, time);
+				return GetSawtooth(time);
 			case WaveType.Triangle:
-				return GetTriangle(frequency, time);
+				return GetTriangle(time);
 			}
 			throw new Exception("Unable to recognize waveType(WaveType) : " + waveType);
 		}
 			
-		public static double GetSine (double frequency, double time) {
-			return Math.Sin(frequency * time * 2.0 * Math.PI);
+		public static double GetSine (double time) {
+			return Math.Sin(time * 2.0 * Math.PI);
+		}
+
+		static double[] squareTable = {-1, 1};
+		public static double GetSquare (double time) {
+			//return GetSine(time) > 0 ? 1 : -1;
+			//return Math.Sign(GetSine(frequency, time));
+			//return (int)time % 2 > 0 ? 1 : -1;
+			return squareTable[(int)(time * 2.0) % 2];
 		}
 		
-		public static double GetSquare (double frequency, double time) {
-			return GetSine(frequency, time) > 0 ? 1 : -1;
+		public static double GetSawtooth (double time) {
+			return (2 * (time - Math.Floor(time + 0.5)));
 		}
 		
-		public static double GetSawtooth (double frequency, double time) {
-			return (2 * (time * frequency - Math.Floor(time * frequency + 0.5)));
-		}
-		
-		public static double GetTriangle (double frequency, double time) {
-			return Math.Abs(GetSawtooth(frequency, time)) * 2 - 1;
+		public static double GetTriangle (double time) {
+			return Math.Abs(GetSawtooth(time)) * 2 - 1;
 		}
 	}
 }

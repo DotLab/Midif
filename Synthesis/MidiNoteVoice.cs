@@ -10,6 +10,10 @@ namespace Midif {
 		uint startSample;
 		uint endSample;
 
+		double duration;
+		double onTime;
+		double offTime;
+
 		bool active;
 
 		public bool Active {
@@ -36,6 +40,8 @@ namespace Midif {
 			startSample = curSample;
 			endSample = startSample + midiNote.Duration;
 
+			duration = (double)midiNote.Duration / SampleRate;
+
 			active = true;
 		}
 		
@@ -44,19 +50,20 @@ namespace Midif {
 				return 0;
 			}
 
-			double onTime = ((double)curSample - (double)startSample) / SampleRate;
 			if (curSample < endSample) {
+				onTime = ((double)curSample - (double)startSample) / SampleRate;
 				return instrument.GetSample(note, onTime) * gain;
 			} else {
-				double offTime = ((double)curSample - (double)endSample) / SampleRate;
-				double sample = instrument.GetSample(note, onTime, offTime);
-				if (sample == 0) {
-					active = false;
-					return 0;
-				} else {
-					return sample * gain;
-				}
-			}			
+				offTime = ((double)curSample - (double)endSample) / SampleRate;
+				return instrument.GetSample(note, duration, offTime) * gain;
+			}
+		}
+
+		public void TryEnd () {
+			if (active && instrument.IsEnded(offTime)) {
+				offTime = 0;
+				active = false;
+			}
 		}
 	}
 }

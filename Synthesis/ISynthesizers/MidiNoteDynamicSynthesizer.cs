@@ -22,7 +22,7 @@ namespace Midif {
 			get { return buffer; }
 		}
 		
-		public MidiNoteDynamicSynthesizer (IInstrumentBank bank, int sampleRate) {
+		public MidiNoteDynamicSynthesizer (IInstrumentBank bank) {
 			Bank = bank;
 		}
 
@@ -45,7 +45,7 @@ namespace Midif {
 				
 				currentSample ++;
 			}
-		}
+		} 
 		
 		double GetSample () {
 			OnSamplePrepareEvent(currentSample);

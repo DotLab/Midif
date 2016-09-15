@@ -1,7 +1,7 @@
 namespace Midif {
 	public class MidiNoteSynthesizer : ISynthesizer {
 		public const int MaxPolyphony = 8;
-		public const double Gain = 0.3;
+		public const double Gain = 0.1;
 
 		public MidiNoteSequence Sequence;
 		public IInstrumentBank Bank;
@@ -39,13 +39,18 @@ namespace Midif {
 
 			if (buffer.Length != sampleCount) {
 				UiConsole.Log(sampleCount);
+				UiConsole.Log();
 				buffer = new double[sampleCount];
 			}
-			
+
 			for (int i = 0; i < sampleCount; i++) {
 				buffer[i] = GetSample();
 
 				currentSample ++;
+			}
+
+			foreach (var voice in voicePool) {
+				voice.TryEnd();
 			}
 		}
 
@@ -68,12 +73,15 @@ namespace Midif {
 
 		void StartVoice (MidiNote midiNote) {
 			foreach (var voice in voicePool) {
-				if (!voice.Active) {
-					voice.SetInstrument(Bank.GetInstrument(midiNote.Channel));
-					voice.Start(midiNote);
-					break;
+				if (voice.Active) {
+					continue;
 				}
+
+				voice.SetInstrument(Bank.GetInstrument(midiNote.Channel));
+				voice.Start(midiNote);
+				return;
 			}
+
 		}
 	}
 }

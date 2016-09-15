@@ -1,4 +1,5 @@
 namespace Midif {
+	[System.Serializable]
 	public class AnalogInstrument : EnvelopedInstrument {
 		public WaveType waveType;
 		public double frequency;
@@ -10,7 +11,7 @@ namespace Midif {
 
 		public override double GetRawSample (int note, double time) {
 			double frequencyFactor = WaveHelper.GetFrequencyFactor(note);
-			return WaveHelper.GetWave(waveType, frequency * frequencyFactor, time);
+			return WaveHelper.GetWave(waveType, time * frequency * frequencyFactor);
 		}
 	}
 }

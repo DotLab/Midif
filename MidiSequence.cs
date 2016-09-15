@@ -48,9 +48,6 @@ namespace Midif {
 		}
 
 		public MidiEvent[] GetMidiEventsAtPulse (uint absoluteTime) {
-			if (!HasMidiEventAtPulse(absoluteTime)) {
-				return null;
-			}
 			return pulseDictionary[absoluteTime].ToArray();
 		}
 	}
