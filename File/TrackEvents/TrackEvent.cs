@@ -1,18 +1,18 @@
 ﻿using System;
 
-namespace Midif.File {
+namespace Midif {
 	public abstract class TrackEvent : IComparable {
 		public int Track;
-		public int Time;
+		public int Tick;
 
 
-		protected TrackEvent (int track, int time) {
+		protected TrackEvent (int track, int tick) {
 			Track = track;
-			Time = time;
+			Tick = tick;
 		}
 
 		public int CompareTo (object other) {
-			return Time.CompareTo(((TrackEvent)other).Time);
+			return Tick.CompareTo(((TrackEvent)other).Tick);
 		}
 	}
 }

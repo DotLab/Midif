@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using Midif.File;
-
 namespace Midif.Synthesizer.Dx7 {
 	public class Dx7Synthesizer {
 		// nominal per-voice level borrowed from Hexter
@@ -13,7 +11,7 @@ namespace Midif.Synthesizer.Dx7 {
 		const int MIDI_CC_MODULATION = 1;
 		const int MIDI_CC_SUSTAIN_PEDAL = 64;
 
-		List<Dx7Voice> voices;
+		public List<Dx7Voice> voices;
 		int polyphony;
 		bool sustainPedalDown;
 		Queue<MidiEvent> eventQueue;
@@ -34,8 +32,7 @@ namespace Midif.Synthesizer.Dx7 {
 			var channel = ev.StatusByte & 0xf;
 			var noteNumber = ev.DataByte1;
 			var velocity = ev.DataByte2;
-			// console.log( "" + ev.data[0] + " " + ev.data[1] + " " + ev.data[2])
-			// console.log("midi: ch %d, cmd %d, note %d, vel %d", channel, cmd, noteNumber, velocity);
+
 			if (channel == 9) // Ignore drum channel
 				return;
 			if (cmd == 8 || ((cmd == 9) && (velocity == 0))) { // with MIDI, note on with velocity zero is the same as note off

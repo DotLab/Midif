@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 
-namespace Midif.File {
+namespace Midif {
 	static class MidiStreamHelper {
 		const int Int16Length = 2;
 		const int Int32Length = 4;

@@ -113,6 +113,7 @@ namespace Midif.Synthesizer.Dx7 {
 				amp *= delayVal;
 				pitchModDepth = 1 + Dx7Config.LfoPitchModTable[patch.lfoPitchModSens] * (patch.controllerModVal + patch.lfoPitchModDepth / 99.0);
 				pitchVal = Math.Pow(pitchModDepth, amp);
+
 				// TODO: Simplify ampValTarget calculation.
 				// ampValTarget range = 0 to 1. lfoAmpModSens range = -3 to 3. ampModDepth range =  0 to 1. amp range = -1 to 1.
 				var ampSensDepth = Math.Abs(opConfig.lfoAmpModSens) * 0.333333;

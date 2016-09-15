@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Midif.File {
+namespace Midif {
 	public enum MetaEventType {
 		SequenceNumber = 0x00,
 		Text = 0x01,
@@ -52,7 +52,7 @@ namespace Midif.File {
 		/// </summary>
 		public int Tempo { get { return Data[0] << 16 | Data[1] << 8 | Data[2]; } }
 
-		public MetaEvent (int track, int time, Stream stream) : base(track, time) {
+		public MetaEvent (int track, int tick, Stream stream) : base(track, tick) {
 			TypeByte = (byte)stream.ReadByte();
 			Length = MidiStreamHelper.ReadVlv(stream);
 
@@ -83,7 +83,7 @@ namespace Midif.File {
 				info += Data[0];
 				break;
 			case MetaEventType.EndOfTrack:
-				return string.Format("(MetaEvent: Track={0}, Time={1}, Type={2})", Track, Time, Type);
+				return string.Format("(MetaEvent: Track={0}, Time={1}, Type={2})", Track, Tick, Type);
 			case MetaEventType.Tempo:
 				info = "MicrosecondsPerBeat=" + Tempo;
 				break;
@@ -104,7 +104,7 @@ namespace Midif.File {
 				break;
 			}
 
-			return string.Format("(MetaEvent: Track={0}, Time={1}, Type={2}, {3}, Data={4})", Track, Time, Type, info, BitConverter.ToString(Data));
+			return string.Format("(MetaEvent: Track={0}, Time={1}, Type={2}, {3}, Data={4})", Track, Tick, Type, info, BitConverter.ToString(Data));
 		}
 	}
 }

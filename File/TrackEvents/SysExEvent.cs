@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace Midif.File {
+namespace Midif {
 	public class SysExEvent : TrackEvent {
 		public byte[] Bytes;
 
@@ -12,7 +12,7 @@ namespace Midif.File {
 			get { return System.Text.Encoding.ASCII.GetString(Bytes); }
 		}
 
-		public SysExEvent (int track, int time, Stream stream) : base(track, time) {
+		public SysExEvent (int track, int tick, Stream stream) : base(track, tick) {
 			var length = MidiStreamHelper.ReadVlv(stream);
 			Bytes = new byte[length];
 			stream.Read(Bytes, 0, length);
@@ -27,7 +27,7 @@ namespace Midif.File {
 		}
 
 		public override string ToString () {
-			return string.Format("(SysExEvent: Track={0}, Time={1}, Bytes={2})", Track, Time, System.BitConverter.ToString(Bytes));
+			return string.Format("(SysExEvent: Track={0}, Time={1}, Bytes={2})", Track, Tick, System.BitConverter.ToString(Bytes));
 		}
 	}
 }

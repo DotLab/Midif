@@ -1,7 +1,31 @@
-﻿namespace Midif.File {
+﻿namespace Midif {
+	[System.Flags]
+	public enum MidiChannel {
+		None = 0,
+
+		Ch0 = 1 << 0,
+		Ch1 = 1 << 1,
+		Ch2 = 1 << 2,
+		Ch3 = 1 << 3,
+		Ch4 = 1 << 4,
+		Ch5 = 1 << 5,
+		Ch6 = 1 << 6,
+		Ch7 = 1 << 7,
+		Ch8 = 1 << 8,
+		Ch9 = 1 << 9,
+		Ch10 = 1 << 10,
+		Ch11 = 1 << 11,
+		Ch12 = 1 << 12,
+		Ch13 = 1 << 13,
+		Ch14 = 1 << 14,
+		Ch15 = 1 << 15,
+
+		All = Ch0 | Ch1 | Ch2 | Ch3 | Ch4 | Ch5 | Ch6 | Ch7 | Ch8 | Ch9 | Ch10 | Ch11 | Ch12 | Ch13 | Ch14 | Ch15
+	}
+
 	public enum MidiEventType {
-		NoteOn = 0x80,
-		NoteOff = 0x90,
+		NoteOff = 0x80,
+		NoteOn = 0x90,
 		Aftertouch = 0xA0,
 		Controller = 0xB0,
 		ProgramChange = 0xC0,
@@ -10,6 +34,8 @@
 	}
 
 	public enum MidiControllerType {
+		#region High Resolution Continuous Controllers
+
 		BankSelect = 0x00,
 		Modulation = 0x01,
 		BreathController = 0x02,
@@ -30,13 +56,19 @@
 		GeneralPurposeController2 = 0x11,
 		GeneralPurposeController3 = 0x12,
 		GeneralPurposeController4 = 0x13,
+		#endregion
 
-		DamperPedal = 0x40,
+		#region Switches
+
+		Sustain = 0x40,
 		Portamento = 0x41,
 		Sostenuto = 0x42,
 		SoftPedal = 0x43,
 		LegatoFootswitch = 0x44,
 		Hold2 = 0x45,
+		#endregion
+
+		#region Low Resolution Continuous Controllers
 
 		SoundController1 = 0x46,
 		SoundController2 = 0x47,
@@ -61,6 +93,9 @@
 		Effects3Depth = 0x5D,
 		Effects4Depth = 0x5E,
 		Effects5Depth = 0x5F,
+		#endregion
+
+		#region RPNs / NRPNs
 
 		DataIncrement = 0x60,
 		DataDecrement = 0x61,
@@ -70,6 +105,9 @@
 
 		RegisteredParameterLSB = 0x64,
 		RegisteredParameterMSB = 0x65,
+		#endregion
+
+		#region Channel Mode Messages
 
 		AllSoundOff = 0x78,
 		ResetAllControllers = 0x79,
@@ -80,6 +118,8 @@
 		OmniModeOn = 0x7D,
 		MonoModeOn = 0x7E,
 		PolyModeOn = 0x7F
+
+		#endregion
 	}
 
 	public enum MidiProgramType {
@@ -516,28 +556,32 @@
 			get { return (MidiEventType)(StatusByte & 0xF0); }
 		}
 
-		public int Channel {
-			get { return StatusByte & 0x0F; }
+		public byte Channel {
+			get { return (byte)(StatusByte & 0x0F); }
 		}
 
-		public int Note { get { return DataByte1; } }
+		public MidiChannel MidiChannel {
+			get { return (MidiChannel)(1 << Channel); }
+		}
 
-		public int Velocity { get { return DataByte2; } }
+		public byte Note { get { return DataByte1; } }
+
+		public byte Velocity { get { return DataByte2; } }
 
 		public MidiControllerType Controller { get { return (MidiControllerType)DataByte1; } }
 
-		public int Value { get { return DataByte2; } }
+		public byte Value { get { return DataByte2; } }
 
 		public MidiProgramType Program { get { return (MidiProgramType)DataByte1; } }
 
 		public MidiPercussionType Percussion { get { return (MidiPercussionType)DataByte1; } }
 
-		public int Pressure { get { return DataByte1; } }
+		public byte Pressure { get { return DataByte1; } }
 
-		public int PitchBend { get { return DataByte2 << 7 + DataByte1; } }
+		public int PitchBend { get { return DataByte2 << 7 | DataByte1; } }
 
 
-		public MidiEvent (int track, int time, byte statusByte) : base(track, time) {
+		public MidiEvent (int track, int tick, byte statusByte) : base(track, tick) {
 			StatusByte = statusByte;
 		}
 
@@ -546,8 +590,6 @@
 
 			switch (Type) {
 			case MidiEventType.NoteOff:
-			//	info = "Note=" + Note;
-			//	break;
 			case MidiEventType.NoteOn:
 			case MidiEventType.Aftertouch:
 				info = string.Format("Note={0}, Velocity={1}", Note, Velocity);
@@ -566,7 +608,7 @@
 				break;
 			}
 
-			return string.Format("(MidiEvent: Track={0}, Time={1}, Type={2}, Channel={3}, {4})", Track, Time, Type, Channel, info);
+			return string.Format("(MidiEvent: Track={0}, Time={1}, Type={2}, Channel={3}, {4})", Track, Tick, Type, Channel, info);
 		}
 	}
 }

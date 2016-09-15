@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 
-namespace Midif.File {
+namespace Midif {
 	public enum MidiFileFormat {
 		SingleTrack = 0x00,
 		MultiTrack = 0x01,
@@ -29,6 +29,8 @@ namespace Midif.File {
 				return new MemoryStream(Bytes);
 			}
 		}
+
+		public static bool AutoRebaseTick = true;
 
 		public MidiFileFormat Format;
 		public int NumberOfTracks;
@@ -68,16 +70,16 @@ namespace Midif.File {
 					throw new Exception(string.Format("Unexpected chunk.Id : {0}, 'MTrk' expected.", chunk.Id));
 
 				using (var trackStream = chunk.GetStream()) {
-					int time = 0;
+					int tick = 0;
 					byte runningStatus = 0x00;
 					SysExEvent pendingSysExEvent = null;
 
 					while (trackStream.Position < chunk.Length) {
-						time += MidiStreamHelper.ReadVlv(trackStream);
+						tick += MidiStreamHelper.ReadVlv(trackStream);
 						var statusByte = (byte)trackStream.ReadByte();
 
 						if (statusByte < 0x80) { // If the first (status) byte is less than 128 (hex 80), this implies that running status is in effect, and that this byte is actually the first data byte.
-							var midiEvent = new MidiEvent(track, time, runningStatus);
+							var midiEvent = new MidiEvent(track, tick, runningStatus);
 
 							switch (runningStatus & 0xF0) {
 							case 0x80: // Note Off
@@ -95,10 +97,13 @@ namespace Midif.File {
 							default:
 								throw new Exception("Unexpected runningStatus : " + runningStatus.ToString("X"));
 							}
+
+							if (midiEvent.Type == MidiEventType.NoteOn && midiEvent.Velocity == 0)
+								midiEvent.StatusByte = (byte)(0x80 | midiEvent.Channel);
 						
 							MidiEvents.Add(midiEvent);
 						} else if (statusByte < 0xF0) { // Midi events (status bytes 0x8n - 0xEn)
-							var midiEvent = new MidiEvent(track, time, statusByte);
+							var midiEvent = new MidiEvent(track, tick, statusByte);
 
 							switch (statusByte & 0xF0) {
 							case 0x80: // Note Off
@@ -115,11 +120,14 @@ namespace Midif.File {
 								break;
 							}
 
+							if (midiEvent.Type == MidiEventType.NoteOn && midiEvent.Velocity == 0)
+								midiEvent.StatusByte = (byte)(0x80 | midiEvent.Channel);
+
 							MidiEvents.Add(midiEvent);
 						} else if (statusByte == 0xF0) { // When an event with 0xF0 status but lacking a terminal 0xF7 is encountered, then this is the first of a Casio-style multi-packet message.
 							runningStatus = 0x00;
 
-							var sysExEvent = new SysExEvent(track, time, trackStream);
+							var sysExEvent = new SysExEvent(track, tick, trackStream);
 							if (!sysExEvent.IsTerminated) pendingSysExEvent = sysExEvent;
 
 							SysExEvents.Add(sysExEvent);
@@ -127,7 +135,7 @@ namespace Midif.File {
 							runningStatus = 0x00;
 
 							if (pendingSysExEvent == null) { // If an event with 0xF7 status is encountered whilst flag is clear, then this event is an escape sequence.
-								var sysExEvent = new SysExEvent(track, time, trackStream);
+								var sysExEvent = new SysExEvent(track, tick, trackStream);
 
 								SysExEvents.Add(sysExEvent);
 							} else { // If an event with 0xF7 status is encountered whilst this flag is set, then this is a continuation event.
@@ -137,7 +145,7 @@ namespace Midif.File {
 						} else if (statusByte == 0xFF) { // Meta events (status byte 0xFF)
 							runningStatus = 0x00;
 
-							var metaEvent = new MetaEvent(track, time, trackStream);
+							var metaEvent = new MetaEvent(track, tick, trackStream);
 
 							MetaEvents.Add(metaEvent);
 						} else throw new Exception("Unexpected statusByte : " + statusByte.ToString("X"));
@@ -146,13 +154,42 @@ namespace Midif.File {
 					var lastMetaEvent = MetaEvents[MetaEvents.Count - 1];
 					if (lastMetaEvent.Type != MetaEventType.EndOfTrack)
 						throw new Exception(string.Format("Unexpected lastMetaEvent.Type : {0}({1}), 'MetaEventType.EndOfTrack' expected.", lastMetaEvent.Type, lastMetaEvent.TypeByte.ToString("X")));
-					Length = Math.Max(Length, time);
+					Length = Math.Max(Length, tick);
 				}
 			}
 
 			MidiEvents.Sort();
 			SysExEvents.Sort();
 			MetaEvents.Sort();
+
+			if (AutoRebaseTick) RebaseTick();
+		}
+
+		// Calculate minimum tick
+		public void RebaseTick () {
+			int cdTick = 0;
+			foreach (var trackEvent in MidiEvents) cdTick = gcd(cdTick, trackEvent.Tick);
+//			foreach (var trackEvent in SysExEvents) cdTick = gcd(cdTick, trackEvent.Tick);
+//			foreach (var trackEvent in MetaEvents) cdTick = gcd(cdTick, trackEvent.Tick);
+
+			if (cdTick == 1) return;
+			DebugConsole.Log(string.Format("Rebase TicksPerBeat from {0} to {1}.", TicksPerBeat, TicksPerBeat / cdTick));
+
+			TicksPerBeat /= cdTick;
+			Length /= cdTick;
+			foreach (var trackEvent in MidiEvents) trackEvent.Tick /= cdTick;
+			foreach (var trackEvent in SysExEvents) trackEvent.Tick /= cdTick;
+			foreach (var trackEvent in MetaEvents) trackEvent.Tick /= cdTick;
+		}
+
+		static int gcd (int a, int b) {
+			while (b > 0) {
+				int temp = b;
+				b = a % b; // % is remainder
+				a = temp;
+			}
+
+			return a;
 		}
 
 		public override string ToString () {
