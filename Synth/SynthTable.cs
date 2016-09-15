@@ -10,6 +10,7 @@ namespace Midif.Synth {
 		public const int Cent2PitcShif = 0x80;
 
 		public static readonly double[] Note2Freq;
+		public static readonly double[] Note2Step;
 		public static readonly double[] Semi2Pitc;
 		public static readonly double[] Cent2Pitc;
 
@@ -30,13 +31,13 @@ namespace Midif.Synth {
 		}
 
 		public static double Deci2Gain (double dB) {
-			return Math.Pow(10, (dB / 20));
+			return Math.Pow(10.0, (dB / 20.0));
 		}
 
 		public static int Clmp2Note (int note) {
 			return 
 				note < 0 ? 0 :
-				note >= Note2FreqLeng ? Note2FreqLeng - 1 :
+				note > Note2FreqLeng - 1 ? Note2FreqLeng - 1 :
 				note;
 		}
 	}

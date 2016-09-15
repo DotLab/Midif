@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class MidiSequencer : IMetaEventHandler {
+	public class MidiSequencer : ISequencer, IMetaEventHandler {
 		public event MidiEventHandler OnProcessMidiEvent;
 
 		public event MetaEventHandler OnProcessMetaEvent;
@@ -44,6 +44,10 @@
 		public int SysExIndex { get { return sysExIndex; } }
 
 		public int MetaIndex { get { return metaIndex; } }
+
+		public double TicksPerSample { get { return ticksPerSample; } }
+
+		public double TicksPerSecond { get { return ticksPerSecond; } }
 
 
 		public MidiSequencer () {

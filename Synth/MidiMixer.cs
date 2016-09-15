@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 
 namespace Midif.Synth {
-	public class MidiMixer : IMidiEventHandler {
+	public class MidiMixer : IMixer, IMidiEventHandler {
 		public class SynthConfig {
 			public MidiChannel Channel = MidiChannel.All;
+			public bool[] Tracks;
 
 			public double Level {
 				get { return level; }
@@ -40,12 +41,16 @@ namespace Midif.Synth {
 				Pan = pan;
 			}
 
-			public SynthConfig (MidiChannel channel, double level = -10, double pan = 0) {
+			public SynthConfig (MidiChannel channel, bool[] tracks, double level = -10, double pan = 0) {
 				Channel = channel;
+				Tracks = tracks;
 				Level = level;
 				Pan = pan;
 			}
 		}
+
+		public MidiChannel Channel;
+		public bool[] Tracks;
 
 		//		public readonly ISynthesizer[] Synthesizers;
 		//		public readonly SynthConfig[] Configs;
@@ -87,17 +92,21 @@ namespace Midif.Synth {
 
 
 		public void MidiEventHandler (MidiEvent midiEvent) {
-			for (int i = 0; i < capacity; i++)
-				if (((int)Configs[i].Channel >> midiEvent.Channel & 0x01) == 0x01)
-					switch (midiEvent.Type) {
-					case MidiEventType.NoteOn:
-						UnityEngine.Debug.Log(midiEvent);
-						Synthesizers[i].NoteOn(midiEvent.Note, midiEvent.Velocity);
-						break;
-					case MidiEventType.NoteOff:
-						Synthesizers[i].NoteOff(midiEvent.Note, midiEvent.Velocity);
-						break;
-					}
+			if (
+				Tracks[midiEvent.Track] &&
+				(midiEvent.MidiChannel & Channel) == midiEvent.MidiChannel)
+				for (int i = 0; i < capacity; i++)
+					if (
+						Configs[i].Tracks[midiEvent.Track] &&
+						(midiEvent.MidiChannel & Configs[i].Channel) == midiEvent.MidiChannel)
+						switch (midiEvent.Type) {
+						case MidiEventType.NoteOn:
+							Synthesizers[i].NoteOn(midiEvent.Note, midiEvent.Velocity);
+							break;
+						case MidiEventType.NoteOff:
+							Synthesizers[i].NoteOff(midiEvent.Note, midiEvent.Velocity);
+							break;
+						}
 //			System.Console.WriteLine(midiEvent);
 //			System.Console.ReadLine();
 		}

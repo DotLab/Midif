@@ -51,6 +51,28 @@ namespace Midif {
 			return a;
 		}
 
+		public void Trim () {
+			Length = MidiEvents[MidiEvents.Count - 1].Tick + TicksPerBeat;
+		}
+
+		public double GetLengthInSeconds () {
+			const double microsecondPerSecond = 1000000;
+			var ticksPerSecond = (double)TicksPerBeat / 500000 * microsecondPerSecond;
+			double time = 0;
+			int lastTick = 0;
+
+			foreach (var metaEvent in MetaEvents)
+				if (metaEvent.Type == MetaEventType.Tempo) {
+					time += (metaEvent.Tick - lastTick) / ticksPerSecond;
+					lastTick = metaEvent.Tick;
+					ticksPerSecond = (double)TicksPerBeat / metaEvent.Tempo * microsecondPerSecond;
+				}
+			
+			time += (Length - lastTick) / ticksPerSecond;
+		
+			return time;
+		}
+
 		public override string ToString () {
 			return string.Format("(MidiFile: Format={0}, TicksPerBeat={1}, NumberOfTracks={2}, Length={3})",
 				Format, TicksPerBeat, NumberOfTracks, Length);

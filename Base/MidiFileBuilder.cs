@@ -115,6 +115,7 @@ namespace Midif {
 
 			file.Sort();
 			file.Rebase();
+			file.Trim();
 
 			return file;
 		}

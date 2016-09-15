@@ -6,8 +6,8 @@ namespace Midif.Synth.FamiTracker {
 
 		public static readonly double[] VibratoDepthTable =
 			{
-				1.0, 1.5, 2.5, 4.0, 5.0, 7.0, 10.0, 12.0, 14.0, 17.0, 22.0, 30.0, 44.0, 64.0, 96.0, 128.0
-			};
+			1.0, 1.5, 2.5, 4.0, 5.0, 7.0, 10.0, 12.0, 14.0, 17.0, 22.0, 30.0, 44.0, 64.0, 96.0, 128.0
+		};
 
 		public static readonly int[] VibratoTable;
 		public static readonly int[] TremoloTable;
@@ -181,6 +181,8 @@ namespace Midif.Synth.FamiTracker {
 			muted = false;
 			volume = velocity >> 3;
 			currentDuty = DutyMod.Value;
+
+			AdvanceFrame();
 		}
 
 		public override void NoteOff (byte note, byte velocity) {

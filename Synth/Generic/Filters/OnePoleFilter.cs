@@ -43,7 +43,7 @@ namespace Midif.Synth {
 		public override void NoteOn (byte note, byte velocity) {
 			base.NoteOn(note, velocity);
 
-			z1 = 0;
+//			z1 = 0;
 		
 			Source.NoteOn(note, velocity);
 		}
