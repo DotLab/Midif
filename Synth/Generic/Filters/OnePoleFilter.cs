@@ -1,7 +1,7 @@
 ﻿using System;
 
-namespace Midif.Synth.Generic {
-	public class OnePoleFilter : CachedSignalProvider {
+namespace Midif.Synth {
+	public class OnePoleFilter : BaseSignalProvider {
 		public enum FilterType {
 			LowPass,
 			HighPass,
@@ -12,42 +12,52 @@ namespace Midif.Synth.Generic {
 		public FilterType Type = FilterType.LowPass;
 		public double Fc;
 
+		public override bool IsActive {	get { return Source.IsActive; } }
+
 		double a0, b1;
 		double z1;
 
 		public override void Init (double sampleRate) {
-			Source.Init(sampleRate);
+			base.Init(sampleRate);
 
+			UpdateCoeffs();
+		
+			Source.Init(sampleRate);
+		}
+
+		public void UpdateCoeffs () {
 			// http://www.earlevel.com/main/2012/12/15/a-one-pole-filter/
 			switch (Type) {
 			case FilterType.LowPass:
-				b1 = Math.Exp(-2 * Math.PI * Fc / sampleRate);
+				b1 = Math.Exp(-2 * Math.PI * Fc * sampleRateRecip);
 				a0 = 1.0 - b1;
 				break;
 			case FilterType.HighPass:
-				b1 = -Math.Exp(-2 * Math.PI * (0.5 - Fc / sampleRate));
+				b1 = -Math.Exp(-2 * Math.PI * (0.5 - Fc * sampleRateRecip));
 				a0 = 1.0 + b1;
 				break;
 			}
 		}
 
+
 		public override void NoteOn (byte note, byte velocity) {
-			Source.NoteOn(note, velocity);
+			base.NoteOn(note, velocity);
 
 			z1 = 0;
+		
+			Source.NoteOn(note, velocity);
 		}
 
-		public override void NoteOff (byte velocity) {
-			Source.NoteOff(velocity);
+		public override void NoteOff (byte note, byte velocity) {
+			base.NoteOff(note, velocity);
+
+			Source.NoteOff(note, velocity);
 		}
 
-		public override bool IsActive () {
-			return Source.IsActive();
-		}
 
 		public override double Render () {
-			return z1 = Source.Render(flag) * a0 + z1 * b1;
+			return z1 = Source.Render() * a0 + z1 * b1;
 		}
 	}
 }
-
+	

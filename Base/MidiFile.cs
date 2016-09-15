@@ -32,7 +32,7 @@ namespace Midif {
 			foreach (var trackEvent in MetaEvents) cdTick = Gcd(cdTick, trackEvent.Tick);
 
 			if (cdTick == 1) return;
-			DebugConsole.Log(string.Format("Rebase TicksPerBeat from {0} to {1}.", TicksPerBeat, TicksPerBeat / cdTick));
+//			DebugConsole.Log(string.Format("Rebase TicksPerBeat from {0} to {1}.", TicksPerBeat, TicksPerBeat / cdTick));
 
 			TicksPerBeat /= cdTick;
 			Length /= cdTick;

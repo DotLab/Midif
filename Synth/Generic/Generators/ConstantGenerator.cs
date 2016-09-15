@@ -1,12 +1,9 @@
-﻿using System;
-
-namespace Midif.Synth.Generic {
+﻿namespace Midif.Synth {
 	public class ConstantGenerator : BaseSignalProvider {
 		public double Value;
 
-		public override double Render (bool flag) {
+		public override double Render () {
 			return Value;
 		}
 	}
 }
-

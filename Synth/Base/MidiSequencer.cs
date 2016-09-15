@@ -1,12 +1,14 @@
 ﻿namespace Midif.Synth {
-	public class MidiSequencer : ISequencer, IMetaEventHandler {
+	public class MidiSequencer : IMetaEventHandler {
 		public event MidiEventHandler OnProcessMidiEvent;
 
 		public event MetaEventHandler OnProcessMetaEvent;
 
-
+		const double microsecondPerSecond = 1000000;
 		double samplesPerMicrosecond;
+
 		double ticksPerSample;
+		double ticksPerSecond;
 
 		MidiFile file;
 
@@ -35,7 +37,7 @@
 			}
 		}
 
-		public double InternalTick { get { return Tick; } }
+		public double InternalTick { get { return tick; } }
 
 		public int MidiIndex { get { return midiIndex; } }
 
@@ -48,20 +50,32 @@
 			OnProcessMetaEvent += MetaEventHandler;
 		}
 
+
 		public void MetaEventHandler (MetaEvent metaEvent) {
-			if (metaEvent.Type == MetaEventType.Tempo)
-				ticksPerSample = file.TicksPerBeat / (metaEvent.Tempo * samplesPerMicrosecond);
+			if (metaEvent.Type == MetaEventType.Tempo) {
+				ticksPerSample = (double)file.TicksPerBeat / (metaEvent.Tempo * samplesPerMicrosecond);
+				// ticks per sample = ticks per beat / ms per beat * ms per sample;
+				//                  = ticks per ms * ms per sample;
+				//                  = ticks per sample;
+				ticksPerSecond = (double)file.TicksPerBeat / metaEvent.Tempo * microsecondPerSecond;
+				// ticks per second = ticks per beat / ms per beat * ms per second;
+				//                  = ticks per ms * ms per second;
+				//                  = ticks per second;
+			}
 		}
 
+
 		public void Init (double sampleRate) {
-			samplesPerMicrosecond = sampleRate * 0.000001;
+			samplesPerMicrosecond = sampleRate / microsecondPerSecond;
 
 			Reset();
 		}
 
 		public void Reset () {
-			if (file != null)
-				ticksPerSample = file.TicksPerBeat / (500000 * samplesPerMicrosecond);
+			if (file != null) {
+				ticksPerSample = (double)file.TicksPerBeat / (500000 * samplesPerMicrosecond);
+				ticksPerSecond = (double)file.TicksPerBeat / 500000 * microsecondPerSecond;
+			}
 
 			tick = 0;
 
@@ -70,14 +84,24 @@
 			metaIndex = 0;
 		}
 
-		public void Advance (double count) {
-			tick += count * ticksPerSample;
+
+		public void AdvanceSamples (double samples) {
+			AdvanceTicks(samples * ticksPerSample);
+		}
+
+		public void AdvanceSeconds (double seconds) {
+			AdvanceTicks(seconds * ticksPerSecond);
+		}
+
+		public void AdvanceTicks (double ticks) {
+			tick += ticks;
 
 			while (midiIndex < file.MidiEvents.Count && file.MidiEvents[midiIndex].Tick <= tick)
 				OnProcessMidiEvent(file.MidiEvents[midiIndex++]);
 			while (metaIndex < file.MetaEvents.Count && file.MetaEvents[metaIndex].Tick <= tick)
 				OnProcessMetaEvent(file.MetaEvents[metaIndex++]);
 		}
+
 
 		public bool IsFinished () {
 			return tick > file.Length;

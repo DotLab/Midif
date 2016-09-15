@@ -1,7 +1,7 @@
 ﻿using System;
 
-namespace Midif.Synth.Generic {
-	public class BiquadFilter : CachedSignalProvider {
+namespace Midif.Synth {
+	public class BiquadFilter : BaseSignalProvider {
 		public enum FilterType {
 			LowPass,
 			HighPass,
@@ -17,16 +17,25 @@ namespace Midif.Synth.Generic {
 		public FilterType Type = FilterType.LowPass;
 		public double Fc, Q = 0.707, PeakGain;
 
+		public override bool IsActive {	get { return Source.IsActive; } }
+
 		double a0, a1, a2, b1, b2;
 		double z1, z2;
 
 		public override void Init (double sampleRate) {
-			Source.Init(sampleRate);
+			base.Init(sampleRate);
 
+			UpdateCoeffs();
+
+			Source.Init(sampleRate);
+		}
+
+		public void UpdateCoeffs () {
 			// http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
 			double norm;
 			double V = Math.Pow(10, Math.Abs(PeakGain) / 20.0);
-			double K = Math.Tan(Math.PI * Fc / sampleRate);
+			double K = Math.Tan(Math.PI * Fc * sampleRateRecip);
+
 			switch (Type) {
 			case FilterType.LowPass:
 				norm = 1 / (1 + K / Q + K * K);
@@ -36,7 +45,6 @@ namespace Midif.Synth.Generic {
 				b1 = 2 * (K * K - 1) * norm;
 				b2 = (1 - K / Q + K * K) * norm;
 				break;
-
 			case FilterType.HighPass:
 				norm = 1 / (1 + K / Q + K * K);
 				a0 = 1 * norm;
@@ -45,7 +53,6 @@ namespace Midif.Synth.Generic {
 				b1 = 2 * (K * K - 1) * norm;
 				b2 = (1 - K / Q + K * K) * norm;
 				break;
-
 			case FilterType.BandPass:
 				norm = 1 / (1 + K / Q + K * K);
 				a0 = K / Q * norm;
@@ -54,7 +61,6 @@ namespace Midif.Synth.Generic {
 				b1 = 2 * (K * K - 1) * norm;
 				b2 = (1 - K / Q + K * K) * norm;
 				break;
-
 			case FilterType.Notch:
 				norm = 1 / (1 + K / Q + K * K);
 				a0 = (1 + K * K) * norm;
@@ -63,7 +69,6 @@ namespace Midif.Synth.Generic {
 				b1 = a1;
 				b2 = (1 - K / Q + K * K) * norm;
 				break;
-
 			case FilterType.Peak:
 				if (PeakGain >= 0) {    // boost
 					norm = 1 / (1 + 1 / Q * K + K * K);
@@ -119,24 +124,27 @@ namespace Midif.Synth.Generic {
 		}
 
 		public override void NoteOn (byte note, byte velocity) {
-			Source.NoteOn(note, velocity);
+			base.NoteOn(note, velocity);
 
 			z1 = z2 = 0;
+	
+			Source.NoteOn(note, velocity);
 		}
 
-		public override void NoteOff (byte velocity) {
-			Source.NoteOff(velocity);
+		public override void NoteOff (byte note, byte velocity) {
+			base.NoteOff(note, velocity);
+
+			Source.NoteOff(note, velocity);
 		}
 
-		public override bool IsActive () {
-			return Source.IsActive();
-		}
 
 		public override double Render () {
-			var input = Source.Render(flag);
-			double output = input * a0 + z1;
+			var input = Source.Render();
+			var output = input * a0 + z1;
+
 			z1 = input * a1 + z2 - b1 * output;
 			z2 = input * a2 - b2 * output;
+
 			return output;
 		}
 	}
