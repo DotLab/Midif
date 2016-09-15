@@ -1,0 +1,5 @@
+# Ensure that all the line endings are normalized
+* text=auto
+
+# Pattern for source code in the C# language
+*.cs diff=csharp
