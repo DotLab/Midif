@@ -1,8 +1,8 @@
 namespace Midif {
 	public enum MidiFormat {
-		SingleTrack,
-		MultiTrack,
-		MultiSong
+		SingleTrack = 0,
+		MultiTrack = 1,
+		MultiSong = 2
 	}
 
 	public enum MidiTimeFormat {

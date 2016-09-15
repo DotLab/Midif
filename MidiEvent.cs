@@ -8,10 +8,10 @@
 		// Set by MidiSequence
 		public uint SampleTime;
 
-		public MidiMetaEventType MetaEventType;
-		public MidiChannelEventType ChannelEventType;
+		public MidiMetaEventType MetaEventType = MidiMetaEventType.None;
+		public MidiChannelEventType ChannelEventType = MidiChannelEventType.None;
 		
-		public object[] Parameters;
+		public object[] Parameters = new object[5];
 		public byte Channel {
 			get { return (byte)Parameters[0]; }
 			set { Parameters[0] = value; }
@@ -24,20 +24,13 @@
 			get { return (byte)Parameters[2]; }
 			set { Parameters[2] = value; }
 		}
-
-		//--Public Methods
-		public MidiEvent () {
-			this.Parameters = new object[5];
-			this.MetaEventType = MidiMetaEventType.None;
-			this.ChannelEventType = MidiChannelEventType.None;
-		}
 		
 		public bool IsMetaEvent () {
-			return ChannelEventType == MidiChannelEventType.None;
+			return MetaEventType != MidiMetaEventType.None;
 		}
 		
 		public bool IsChannelEvent () {
-			return MetaEventType == MidiMetaEventType.None;
+			return ChannelEventType != MidiChannelEventType.None;
 		}
 		
 		public MidiControllerEventType GetControllerEventType () {

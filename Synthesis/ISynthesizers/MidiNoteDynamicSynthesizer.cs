@@ -1,42 +1,35 @@
 namespace Midif {
-	public class MidiDynamicNoteSythesizer {
+	public class MidiNoteDynamicSynthesizer : ISynthesizer {
 		public const int MaxPolyphony = 16;
-		
+		public const double Gain = 0.3;
+
 		public delegate void OnBufferPrepare (uint curSample);
 		public event OnBufferPrepare OnBufferPrepareEvent;
 		public delegate void OnSamplePrepare (uint curSample);
 		public event OnSamplePrepare OnSamplePrepareEvent;
 
-		public readonly int SampleRate;
 		public IInstrumentBank Bank;
 		
-		uint curSample;
-		
+		uint currentSample;
 		double[] buffer = new double[0];
 		
-		Voice[] voicePool;
-		
-		double gain = 0.3;
-		
+		MidiNoteVoice[] voicePool;
+
 		public uint CurrentSample {
-			get { return curSample; }
+			get { return currentSample; }
 		}
-		
 		public double[] Buffer {
 			get { return buffer; }
 		}
 		
-		public double Gain {
-			get { return gain; }
+		public MidiNoteDynamicSynthesizer (IInstrumentBank bank, int sampleRate) {
+			Bank = bank;
 		}
-		
-		public MidiDynamicNoteSythesizer (IInstrumentBank bank, int sampleRate) {
-			this.Bank = bank;
-			this.SampleRate = sampleRate;
-			
-			voicePool = new Voice[MaxPolyphony];
+
+		public void SetSampleRate (uint sampleRate) {
+			voicePool = new MidiNoteVoice[MaxPolyphony];
 			for (int i = 0; i < MaxPolyphony; i++) {
-				voicePool[i] = new Voice(sampleRate);
+				voicePool[i] = new MidiNoteVoice(sampleRate);
 			}
 		}
 		
@@ -45,33 +38,33 @@ namespace Midif {
 				buffer = new double[bufferSize];
 			}
 			
-			OnBufferPrepareEvent(curSample);
+			OnBufferPrepareEvent(currentSample);
+
 			for (int i = 0; i < bufferSize; i++) {
-				GetSample(ref buffer[i]);
+				buffer[i] = GetSample();
 				
-				curSample ++;
+				currentSample ++;
 			}
 		}
 		
-		void GetSample (ref double sample) {
-			OnSamplePrepareEvent(curSample);
+		double GetSample () {
+			OnSamplePrepareEvent(currentSample);
 			
-			sample = 0;
+			double sample = 0;
 			foreach (var voice in voicePool) {
 				if (voice.Active) {
-					sample += voice.Update(curSample);
+					sample += voice.Update(currentSample);
 				}
 			}
-			
-			sample *= gain;
+			return sample * Gain;
 		}
 		
-		public void StartMidiNote (MidiNote midiNote, bool fromCurSample) {
+		public void StartVoice (MidiNote midiNote, bool immediately) {
 			foreach (var voice in voicePool) {
 				if (!voice.Active) {
 					voice.SetInstrument(Bank.GetInstrument(midiNote.Channel));
-					if (fromCurSample) {
-						voice.Start(midiNote, curSample);
+					if (immediately) {
+						voice.Start(midiNote, currentSample);
 					} else {
 						voice.Start(midiNote);
 					}

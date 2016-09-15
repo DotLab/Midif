@@ -1,8 +1,7 @@
 namespace Midif {
-	public class Voice {
-		double sampleRate;
-		bool active;
-		
+	public class MidiNoteVoice {
+		public readonly double SampleRate;
+
 		IInstrument instrument;
 		
 		int note;
@@ -10,20 +9,20 @@ namespace Midif {
 		
 		uint startSample;
 		uint endSample;
-		uint relaseDuration;
-		uint relaseSample;
+
+		bool active;
 
 		public bool Active {
 			get { return active; }
 		}
-		
-		public Voice (double sampleRate) {
-			this.sampleRate = sampleRate;
+
+
+		public MidiNoteVoice (double sampleRate) {
+			SampleRate = sampleRate;
 		}
 		
 		public void SetInstrument (IInstrument newInstrument) {
 			instrument = newInstrument;
-			relaseDuration = (uint)(instrument.GetReleaseTime() * sampleRate);
 		}
 		
 		public void Start (MidiNote midiNote) {
@@ -36,8 +35,7 @@ namespace Midif {
 			
 			startSample = curSample;
 			endSample = startSample + midiNote.Duration;
-			relaseSample = endSample + relaseDuration;
-			
+
 			active = true;
 		}
 		
@@ -46,20 +44,19 @@ namespace Midif {
 				return 0;
 			}
 
-			double onTime = ((double)curSample - (double)startSample) / sampleRate;
-			double offTime = -1;
-
-			if (curSample > endSample) {
-				if (curSample >= relaseSample) {
+			double onTime = ((double)curSample - (double)startSample) / SampleRate;
+			if (curSample < endSample) {
+				return instrument.GetSample(note, onTime) * gain;
+			} else {
+				double offTime = ((double)curSample - (double)endSample) / SampleRate;
+				double sample = instrument.GetSample(note, onTime, offTime);
+				if (sample == 0) {
 					active = false;
-
 					return 0;
+				} else {
+					return sample * gain;
 				}
-				
-				offTime = ((double)curSample - (double)endSample) / sampleRate;
-			}
-			
-			return instrument.GetEnvelopedSample(note, onTime, offTime) * gain;
+			}			
 		}
 	}
 }

@@ -2,13 +2,14 @@ using System.Collections.Generic;
 
 namespace Midif {
 	public class MidiNoteSequence {
-		int sampleRate;
-		uint sampleLength;
-		
 		MidiSequence midiSequence;
+
+		uint sampleRate;
+		uint sampleLength;
 
 		// Sample to MidiEventsList
 		Dictionary<uint, List<MidiNote>> sampleDictionary;
+		List<uint> samples;
 
 		public MidiSequence MidiSequence {
 			get { return midiSequence; }
@@ -16,28 +17,32 @@ namespace Midif {
 		public uint SampleLength {
 			get { return sampleLength; }
 		}
-		public int SampleRate {
+		public uint SampleRate {
 			get { return sampleRate; }
-			set {
-				if (sampleRate != value) {
-					sampleRate = value;
-					ParseSampleDictionary(sampleRate);
-				}
-			}
+		}
+		public uint[] Samples {
+			get { return samples.ToArray(); }
 		}
 		
 		public MidiNoteSequence (MidiSequence midiSequence) {
 			this.midiSequence = midiSequence;
 		}
 		
-		public MidiNoteSequence (MidiSequence midiSequence, int sampleRate) {
+		public MidiNoteSequence (MidiSequence midiSequence, uint sampleRate) {
 			this.midiSequence = midiSequence;
 			this.sampleRate = sampleRate;
 			
 			ParseSampleDictionary(sampleRate);
 		}
+
+		public void SetSampleRate (uint newSampleRate) {
+			if (sampleRate != newSampleRate) {
+				sampleRate = newSampleRate;
+				ParseSampleDictionary(sampleRate);
+			}
+		}
 		
-		void ParseSampleDictionary (int sampleRate) {
+		void ParseSampleDictionary (uint sampleRate) {
 			sampleDictionary = new Dictionary<uint, List<MidiNote>>();
 
 			uint sample = 0;
@@ -47,21 +52,22 @@ namespace Midif {
 			double spp = spms * (mspqn / ppqn);
 			
 			double lastTime = 0;
-			LinkedList<MidiNote> openNoteList = new LinkedList<MidiNote>();
+			var openNoteList = new LinkedList<MidiNote>();
 			foreach (var pulse in midiSequence.Pulses) {
 				MidiEvent[] midiEventsList = midiSequence.GetMidiEventsAtPulse(pulse);
 
-				sample += (uint)((midiEventsList[0].AbsoluteTime - lastTime) * spp);
+				sample += (uint)(((double)midiEventsList[0].AbsoluteTime - lastTime) * spp);
 				lastTime = midiEventsList[0].AbsoluteTime;
 
 				foreach (var midiEvent in midiEventsList) {
 					if (midiEvent.ChannelEventType == MidiChannelEventType.NoteOn) {
-						MidiNote newMidiNote = new MidiNote(midiEvent.Track, midiEvent.Channel, midiEvent.Parameter1, midiEvent.Parameter2, sample);
-						openNoteList.AddLast(newMidiNote);
+						var newOpenNote = new MidiNote(midiEvent.Track, midiEvent.Channel, midiEvent.Parameter1, midiEvent.Parameter2);
+						newOpenNote.SetStartSample(sample);
+						openNoteList.AddLast(newOpenNote);
 						if (!sampleDictionary.ContainsKey(sample)) {
 							sampleDictionary.Add(sample, new List<MidiNote>());
 						}
-						sampleDictionary[sample].Add(newMidiNote);
+						sampleDictionary[sample].Add(newOpenNote);
 					} else if (midiEvent.ChannelEventType == MidiChannelEventType.NoteOff) {
 						foreach (var openNote in openNoteList) {
 							if (openNote.Track == midiEvent.Track && openNote.Channel == midiEvent.Channel && openNote.Note == midiEvent.Parameter1) {
@@ -70,12 +76,10 @@ namespace Midif {
 								break;
 							}
 						}
-
 					} else if (midiEvent.MetaEventType == MidiMetaEventType.EndOfTrack) {
 						foreach (var openNote in openNoteList) {
 							openNote.SetEndSample(sample);
 						}
-						
 						sampleLength = sample;
 					} else if (midiEvent.MetaEventType == MidiMetaEventType.Tempo) {
 						mspqn = System.Convert.ToUInt32(midiEvent.Parameters[0]);
@@ -87,6 +91,9 @@ namespace Midif {
 			if (sampleLength == 0) {
 				sampleLength = sample;
 			}
+
+			samples = new List<uint>(sampleDictionary.Keys);
+			samples.Sort();
 		}
 
 		public bool HasMidiNoteAtSample (uint sample) {

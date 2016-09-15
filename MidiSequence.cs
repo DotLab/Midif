@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 namespace Midif {
-    public class MidiSequence {
+	public class MidiSequence {
 		MidiFile midiFile;
 
 		uint pulseLength;
@@ -16,12 +16,12 @@ namespace Midif {
 		public uint PulseLength {
 			get { return pulseLength; }
 		}
-		public List<uint> Pulses {
-			get { return pulses; }
+		public uint[] Pulses {
+			get { return pulses.ToArray(); }
 		}
 
 		public MidiSequence (MidiFile file) {
-			this.midiFile = file;
+			midiFile = file;
 
 			ParsePulseDictionary();
 		}
@@ -53,5 +53,5 @@ namespace Midif {
 			}
 			return pulseDictionary[absoluteTime].ToArray();
 		}
-    }
+	}
 }
