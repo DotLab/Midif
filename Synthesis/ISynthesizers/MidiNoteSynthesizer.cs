@@ -1,7 +1,7 @@
 namespace Midif {
 	public class MidiNoteSynthesizer : ISynthesizer {
-		public const int MaxPolyphony = 8;
-		public const double Gain = 0.1;
+		public const int MaxPolyphony = 4;
+		public const double Gain = 1.0 / MaxPolyphony;
 
 		public MidiNoteSequence Sequence;
 		public IInstrumentBank Bank;
@@ -14,6 +14,7 @@ namespace Midif {
 		public uint CurrentSample {
 			get { return currentSample; }
 		}
+
 		public double[] Buffer {
 			get { return buffer; }
 		}
@@ -46,7 +47,7 @@ namespace Midif {
 			for (int i = 0; i < sampleCount; i++) {
 				buffer[i] = GetSample();
 
-				currentSample ++;
+				currentSample++;
 			}
 
 			foreach (var voice in voicePool) {

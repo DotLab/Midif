@@ -2,7 +2,7 @@
 	public abstract class EnvelopedInstrument : IInstrument {
 		public IEnvelope Envelope;
 
-		public EnvelopedInstrument (IEnvelope envelope) {
+		protected EnvelopedInstrument (IEnvelope envelope) {
 			Envelope = envelope;
 		}
 
