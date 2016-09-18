@@ -28,13 +28,16 @@
 		public int BlockAlign;
 		// The number of bits of data used to represent each sample of each channel.
 		public int BitsPerSample;
-
 		public byte[] WaveData;
-		public double[][] Samples;
 
+		public double[][] Samples;
 
 		public WaveFileFormat Format {
 			get { return (WaveFileFormat)FormatTag; }
+		}
+
+		public override string ToString () {
+			return string.Format("[WaveFile: Channels={0}, SamplePerSec={1}, BitsPerSample={2}, Format={3}]", Channels, SamplePerSec, BitsPerSample, Format);
 		}
 	}
 }

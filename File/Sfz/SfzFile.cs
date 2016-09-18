@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
-
-namespace Midif.File.Sfz {
+﻿namespace Midif.File.Sfz {
 	[System.Serializable]
 	public class SfzFile {
-		public List<SfzRegion> Regions = new List<SfzRegion>();
+		public SfzRegion[] Regions;
+
+		public override string ToString () {
+			return string.Format("[SfzFile: Regions={0}]", Regions.Length);
+		}
 	}
 }

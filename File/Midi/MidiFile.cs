@@ -73,9 +73,9 @@ namespace Midif {
 			return time;
 		}
 
+
 		public override string ToString () {
-			return string.Format("(MidiFile: Format={0}, TicksPerBeat={1}, NumberOfTracks={2}, Length={3})",
-				Format, TicksPerBeat, NumberOfTracks, Length);
+			return string.Format("[MidiFile: Format={0}, NumberOfTracks={1}, TicksPerBeat={2}, Length={3}]", Format, NumberOfTracks, TicksPerBeat, Length);
 		}
 	}
 }

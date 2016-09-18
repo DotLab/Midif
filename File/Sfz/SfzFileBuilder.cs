@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Text;
+using System.Collections.Generic;
 
 namespace Midif.File.Sfz {
 	public static class SfzFileBuilder {
@@ -13,6 +13,7 @@ namespace Midif.File.Sfz {
 		public static SfzFile Build (Stream stream) {
 			var file = new SfzFile();
 
+			var list = new List<SfzRegion>();
 			using (var reader = new StreamReader(stream)) {
 				SfzRegion master = null, region = null;
 				while (!reader.EndOfStream) {
@@ -28,7 +29,7 @@ namespace Midif.File.Sfz {
 							break;
 						case "<region>":
 							region = new SfzRegion(master);
-							file.Regions.Add(region);
+							list.Add(region);
 							break;
 						default:
 							if (region != null)
@@ -42,6 +43,7 @@ namespace Midif.File.Sfz {
 					}
 				}
 			}
+			file.Regions = list.ToArray();
 
 			return file;
 		}
