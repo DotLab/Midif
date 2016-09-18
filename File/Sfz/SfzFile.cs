@@ -4,7 +4,7 @@
 		public SfzRegion[] Regions;
 
 		public override string ToString () {
-			return string.Format("[SfzFile: Regions={0}]", Regions.Length);
+			return string.Format("[SfzFile: Regions.Length={0}]", Regions.Length);
 		}
 	}
 }
