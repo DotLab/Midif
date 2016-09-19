@@ -2,8 +2,11 @@
 using System.IO;
 using System.Text;
 
+using Midif.File;
+
 namespace Midif {
 	public static class MidiFileBuilder {
+		// MidiFile uses Big Endian;
 		static class StreamHelper {
 			const int Int16Length = 2;
 			const int Int32Length = 4;
@@ -11,7 +14,7 @@ namespace Midif {
 			public static string ReadString (Stream stream, int length) {
 				var bytes = new byte[length];
 				stream.Read(bytes, 0, length);
-				return Encoding.ASCII.GetString(bytes);
+				return Encoding.UTF8.GetString(bytes);
 			}
 
 			public static int ReadInt16 (Stream stream) {
@@ -56,6 +59,7 @@ namespace Midif {
 			}
 		}
 
+		// Chunk is not Midif.File.RiffChunk, Chunk.Length is Big Endian;
 		class Chunk {
 			public string Id;
 			public int Length;
@@ -89,7 +93,7 @@ namespace Midif {
 			// header_chunk = "MThd" + <header_length> + <format> + <n> + <division>
 			var chunk = new Chunk(stream);
 			if (chunk.Id != "MThd")
-				throw new Exception(string.Format("Unexpected chunk.Id : {0}, 'MThd' expected.", chunk.Id));
+				throw new FileFormatException("MidiFile.chunk.Id", chunk.Id, "MThd");
 
 			using (var header = chunk.GetStream()) {
 				file.Format = (MidiFileFormat)StreamHelper.ReadInt16(header);
@@ -106,8 +110,8 @@ namespace Midif {
 			for (int track = 0; track < file.NumberOfTracks; track++) {
 				chunk = new Chunk(stream);
 				if (chunk.Id != "MTrk")
-					throw new Exception(string.Format("Unexpected chunk.Id : {0}, 'MTrk' expected.", chunk.Id));
-
+					throw new FileFormatException("MidiFile.chunk.Id", chunk.Id, "MTrk");
+				
 				using (var trackStream = chunk.GetStream()) {
 					BuildTrack(file, track, trackStream);
 				}
@@ -154,7 +158,7 @@ namespace Midif {
 						midiEvent.DataByte1 = dataByte1;
 						break;
 					default:
-						throw new Exception("Unexpected statusByte : " + statusByte.ToString("X"));
+						throw new FileFormatException("MidiFile.statusByte", statusByte.ToString("X"), "[midi statusByte]");
 					}
 
 					if (midiEvent.Type == MidiEventType.NoteOn && midiEvent.Velocity == 0)
@@ -178,7 +182,7 @@ namespace Midif {
 
 					file.MetaEvents.Add(metaEvent);
 				} else
-					throw new Exception("Unexpected statusByte : " + statusByte.ToString("X"));
+					throw new FileFormatException("MidiFile.statusByte", statusByte.ToString("X"), "[midi statusByte]");
 			}
 
 			file.Length = Math.Max(file.Length, tick);

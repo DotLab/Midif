@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class WhiteNoiseGenerator : BaseSignalProvider {
+	public class WhiteNoiseGenerator : BaseComponent {
 		const int SampleLength = 0x10000;
 		const int SampleMod = 0xFFFF;
 

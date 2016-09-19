@@ -2,6 +2,8 @@
 	public interface ISynthesizer {
 		void Init (double sampleRate);
 
+		void Reset ();
+
 
 		void NoteOn (byte note, byte velocity);
 

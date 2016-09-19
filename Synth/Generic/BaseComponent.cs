@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public abstract class BaseSignalProvider : ISignalProvider {
+	public abstract class BaseComponent : IComponent {
 		public byte Note { get { return note; } }
 
 		public bool IsOn { get { return isOn; } }
@@ -16,6 +16,10 @@
 		public virtual void Init (double sampleRate) {
 			this.sampleRate = sampleRate;
 			sampleRateRecip = 1 / sampleRate;
+		}
+
+		public virtual void Reset () {
+			Init(sampleRate);
 		}
 
 

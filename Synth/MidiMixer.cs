@@ -76,6 +76,11 @@ namespace Midif.Synth {
 				synthesizer.Init(sampleRate);
 		}
 
+		public void Reset () {
+			foreach (var synthesizer in Synthesizers)
+				synthesizer.Reset();
+		}
+
 
 		public void Render (ref double sample) {
 			for (int i = 0; i < capacity; i++)

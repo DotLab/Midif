@@ -10,6 +10,7 @@
 		}
 
 		public virtual void Reset () {
+			Init(sampleRate);
 		}
 
 

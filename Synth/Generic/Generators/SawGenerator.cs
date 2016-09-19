@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class SawGenerator : BaseSignalProvider {
+	public class SawGenerator : BaseComponent {
 		public int Transpose;
 		public int Tune;
 

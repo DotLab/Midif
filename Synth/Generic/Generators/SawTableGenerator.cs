@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class SawTableGenerator : BaseSignalProvider {
+	public class SawTableGenerator : BaseComponent {
 		const int TableLength = 0x800;
 		const int TableMod = 0x7FF;
 		static readonly double[] Table;

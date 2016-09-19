@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class SineTableGenerator : BaseSignalProvider {
+	public class SineTableGenerator : BaseComponent {
 		const int TableLength = 0x800;
 		const int TableMod = 0x7FF;
 		static readonly double[] Table;

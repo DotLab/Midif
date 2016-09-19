@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public interface ISignalProvider : ISynthesizer {
+	public interface IComponent : ISynthesizer {
 		byte Note { get; }
 
 		bool IsOn { get; }

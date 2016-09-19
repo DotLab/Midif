@@ -1,5 +1,7 @@
-﻿namespace Midif {
-	[System.Serializable]
+﻿using System;
+
+namespace Midif {
+	[Serializable]
 	public class SysExEvent : TrackEvent {
 		public int Length;
 		public byte[] Bytes;
@@ -15,7 +17,7 @@
 		}
 
 		public override string ToString () {
-			return string.Format("(SysExEvent: Track={0}, Time={1}, Bytes={2})", Track, Tick, System.BitConverter.ToString(Bytes));
+			return string.Format("[SysExEvent: Track={0}, Time={1}, Bytes={2}]", Track, Tick, BitConverter.ToString(Bytes));
 		}
 	}
 }

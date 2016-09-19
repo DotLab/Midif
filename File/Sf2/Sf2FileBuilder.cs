@@ -39,7 +39,7 @@ namespace Midif.File.Sf2 {
 							break;
 						case "isng":
 							// <isng-ck> ; Refers to the target Sound Engine
-							file.TargetSoundEngine = Encoding.ASCII.GetString(chunk.Data);
+							file.TargetSoundEngine = Encoding.UTF8.GetString(chunk.Data);
 							break;
 						case "INAM":
 							// <INAM-ck> ; Refers to the Sound Font Bank Name

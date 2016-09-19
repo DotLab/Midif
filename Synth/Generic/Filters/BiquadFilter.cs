@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class BiquadFilter : BaseSignalProvider {
+	public class BiquadFilter : BaseComponent {
 		public enum FilterType {
 			LowPass,
 			HighPass,
@@ -12,7 +12,7 @@ namespace Midif.Synth {
 			HighShelf,
 		}
 
-		public ISignalProvider Source;
+		public IComponent Source;
 
 		public FilterType Type = FilterType.LowPass;
 		public double Fc, Q = 0.707, PeakGain;

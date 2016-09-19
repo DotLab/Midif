@@ -1,13 +1,13 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class OnePoleFilter : BaseSignalProvider {
+	public class OnePoleFilter : BaseComponent {
 		public enum FilterType {
 			LowPass,
 			HighPass,
 		}
 
-		public ISignalProvider Source;
+		public IComponent Source;
 
 		public FilterType Type = FilterType.LowPass;
 		public double Fc;

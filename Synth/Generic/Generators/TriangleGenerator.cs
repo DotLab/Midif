@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class TriangleGenerator : BaseSignalProvider {
+	public class TriangleGenerator : BaseComponent {
 		public int Transpose;
 		public int Tune;
 

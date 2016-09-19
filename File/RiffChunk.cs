@@ -29,7 +29,7 @@ namespace Midif.File {
 		}
 
 		public string GetString () {
-			return Encoding.ASCII.GetString(Data);
+			return Encoding.UTF8.GetString(Data);
 		}
 
 		public override string ToString () {

@@ -10,7 +10,6 @@ namespace Midif.Synth {
 		public const int Cent2PitcShif = 0x80;
 
 		public static readonly double[] Note2Freq;
-		public static readonly double[] Note2Step;
 		public static readonly double[] Semi2Pitc;
 		public static readonly double[] Cent2Pitc;
 

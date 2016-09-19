@@ -1,6 +1,6 @@
 ﻿namespace Midif.Synth {
-	public class DelayEnvelope : BaseSignalProvider {
-		public ISignalProvider Source;
+	public class DelayEnvelope : BaseComponent {
+		public IComponent Source;
 
 		public double Delay;
 

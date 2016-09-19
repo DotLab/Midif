@@ -1,5 +1,7 @@
-﻿namespace Midif {
-	[System.Flags]
+﻿using System;
+
+namespace Midif {
+	[Flags]
 	public enum MidiChannel {
 		None = 0,
 
@@ -26,10 +28,15 @@
 	public enum MidiEventType {
 		NoteOff = 0x80,
 		NoteOn = 0x90,
+
 		Aftertouch = 0xA0,
+
 		Controller = 0xB0,
+
 		ProgramChange = 0xC0,
+
 		ChannelAftertouch = 0xD0,
+
 		PitchBend = 0xE0
 	}
 
@@ -66,6 +73,7 @@
 		SoftPedal = 0x43,
 		LegatoFootswitch = 0x44,
 		Hold2 = 0x45,
+
 		#endregion
 
 		#region Low Resolution Continuous Controllers
@@ -93,6 +101,7 @@
 		Effects3Depth = 0x5D,
 		Effects4Depth = 0x5E,
 		Effects5Depth = 0x5F,
+
 		#endregion
 
 		#region RPNs / NRPNs
@@ -105,6 +114,7 @@
 
 		RegisteredParameterLSB = 0x64,
 		RegisteredParameterMSB = 0x65,
+
 		#endregion
 
 		#region Channel Mode Messages
@@ -568,7 +578,7 @@
 		}
 
 		public MidiChannel MidiChannel {
-			get { return (MidiChannel)(1 << Channel); }
+			get { return (MidiChannel)(1 << (StatusByte & 0x0F)); }
 		}
 
 		public byte Note { get { return DataByte1; } }
@@ -615,7 +625,7 @@
 				break;
 			}
 
-			return string.Format("(MidiEvent: Track={0}, Time={1}, Type={2}, Channel={3}, {4})", Track, Tick, Type, Channel, info);
+			return string.Format("[MidiEvent: Track={0}, Time={1}, Type={2}, Channel={3}, {4}]", Track, Tick, Type, Channel, info);
 		}
 	}
 }

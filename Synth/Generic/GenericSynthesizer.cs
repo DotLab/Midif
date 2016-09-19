@@ -1,15 +1,15 @@
 ﻿namespace Midif.Synth {
 	public class GenericSynthesizer : MidiSynthesizer {
-		public delegate ISignalProvider SignalProviderBuilder ();
+		public delegate IComponent SignalProviderBuilder ();
 
 		public SignalProviderBuilder BuildSignalProvider;
 		public int Polyphony = 4;
 
-		ISignalProvider[] signalProviders;
+		IComponent[] signalProviders;
 
 
 		public override void Init (double sampleRate) {
-			signalProviders = new ISignalProvider[Polyphony];
+			signalProviders = new IComponent[Polyphony];
 			for (int i = 0; i < Polyphony; i++) {
 				signalProviders[i] = BuildSignalProvider();
 				signalProviders[i].Init(sampleRate);

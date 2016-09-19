@@ -7,7 +7,7 @@ namespace Midif.File {
 		public static string ReadString (Stream stream, int length) {
 			var bytes = new byte[length];
 			stream.Read(bytes, 0, length);
-			return Encoding.ASCII.GetString(bytes);
+			return Encoding.UTF8.GetString(bytes);
 		}
 
 		public static Int16 ReadInt16 (Stream stream) {

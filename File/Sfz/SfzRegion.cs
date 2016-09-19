@@ -466,6 +466,10 @@ namespace Midif.File.Sfz {
 
 			return true;
 		}
+
+		public override string ToString () {
+			return string.Format("[SfzRegion: sample={0}, lokey={1}, hikey={2}, pitchKeycenter={3}, volume={4}]", sample, lokey, hikey, pitchKeycenter, volume);
+		}
 	}
 }
 

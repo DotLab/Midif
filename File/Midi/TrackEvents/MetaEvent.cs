@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace Midif {
 	public enum MetaEventType {
@@ -32,7 +33,7 @@ namespace Midif {
 	}
 
 
-	[System.Serializable]
+	[Serializable]
 	public class MetaEvent : TrackEvent {
 		public byte TypeByte;
 		public int Length;
@@ -47,7 +48,7 @@ namespace Midif {
 		}
 
 		public string Text {
-			get { return System.Text.Encoding.ASCII.GetString(Data); }
+			get { return Encoding.UTF8.GetString(Data); }
 		}
 
 		public byte ChannelPrefix { get { return Data[0]; } }
@@ -82,7 +83,7 @@ namespace Midif {
 			case MetaEventType.CuePoint:
 			case MetaEventType.ProgramName:
 			case MetaEventType.DeviceName:
-				info += System.Text.Encoding.ASCII.GetString(Data);
+				info += Encoding.UTF8.GetString(Data);
 				break;
 			case MetaEventType.MidiChannelPrefix:
 			case MetaEventType.MidiPort:
@@ -110,7 +111,7 @@ namespace Midif {
 				break;
 			}
 
-			return string.Format("(MetaEvent: Track={0}, Time={1}, Type={2}, {3}, Data={4})", Track, Tick, Type, info, BitConverter.ToString(Data));
+			return string.Format("[MetaEvent: Track={0}, Time={1}, Type={2}, {3}, Data={4}]", Track, Tick, Type, info, BitConverter.ToString(Data));
 		}
 	}
 }

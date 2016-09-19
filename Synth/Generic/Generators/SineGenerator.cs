@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class SineGenerator : BaseSignalProvider {
+	public class SineGenerator : BaseComponent {
 		public int Transpose;
 		public int Tune;
 

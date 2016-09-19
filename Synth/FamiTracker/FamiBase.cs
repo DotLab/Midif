@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth.FamiTracker {
-	public abstract class FamiBase : BaseSignalProvider {
+	public abstract class FamiBase : BaseComponent {
 		public const double ClockFreq = 1789772.727;
 
 		public static readonly double[] VibratoDepthTable =

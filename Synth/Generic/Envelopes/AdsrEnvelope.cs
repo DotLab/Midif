@@ -1,6 +1,6 @@
 ﻿namespace Midif.Synth {
-	public class AdsrEnvelope : BaseSignalProvider {
-		public ISignalProvider Source;
+	public class AdsrEnvelope : BaseComponent {
+		public IComponent Source;
 
 		public double Attack;
 		public double Decay;

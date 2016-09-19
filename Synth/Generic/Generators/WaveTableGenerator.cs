@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class WaveTableGenerator : BaseSignalProvider {
+	public class WaveTableGenerator : BaseComponent {
 		public int Transpose;
 		public int Tune;
 
