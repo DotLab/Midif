@@ -1,4 +1,4 @@
-﻿namespace Midif.Synth {
+﻿namespace Midif.Synth.Sequencer {
 	public interface ISequencer {
 		event MidiEventHandler OnProcessMidiEvent;
 

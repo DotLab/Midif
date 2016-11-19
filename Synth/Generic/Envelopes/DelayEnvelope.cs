@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class DelayEnvelope : BaseComponent {
+	public class DelayEnvelope : MidiComponent {
 		public IComponent Source;
 
 		public double Delay;
@@ -37,7 +37,7 @@
 		public override double Render () {
 			// if is faster by 2 ticks
 			if (delayCounter < 0)
-				return Source.Render();
+				return Source.Render(renderFlag);
 			delayCounter--;
 			return 0;
 //			return delayCounter-- > 0 ? 0 : Source.Render();

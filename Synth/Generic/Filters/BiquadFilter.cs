@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class BiquadFilter : BaseComponent {
+	public class BiquadFilter : MidiComponent {
 		public enum FilterType {
 			LowPass,
 			HighPass,
@@ -139,7 +139,7 @@ namespace Midif.Synth {
 
 
 		public override double Render () {
-			var input = Source.Render();
+			var input = Source.Render(renderFlag);
 			var output = input * a0 + z1;
 
 			z1 = input * a1 + z2 - b1 * output;

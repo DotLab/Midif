@@ -1,5 +1,12 @@
 ﻿namespace Midif.Synth {
-	public interface ISynthesizer {
+	public interface IComponent {
+		byte Note { get; }
+
+		bool IsOn { get; }
+
+		bool IsActive { get; }
+
+
 		void Init (double sampleRate);
 
 		void Reset ();
@@ -10,7 +17,6 @@
 		void NoteOff (byte note, byte velocity);
 
 
-		double Render ();
+		double Render (bool flag);
 	}
 }
-

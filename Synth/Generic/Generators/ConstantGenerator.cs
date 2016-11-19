@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class ConstantGenerator : BaseComponent {
+	public class ConstantGenerator : MidiComponent {
 		public double Value;
 
 		public override double Render () {

@@ -1,4 +1,4 @@
-﻿namespace Midif.Synth {
+﻿namespace Midif.Synth.Sequencer {
 	public class MidiSequencer : ISequencer, IMetaEventHandler {
 		public event MidiEventHandler OnProcessMidiEvent;
 

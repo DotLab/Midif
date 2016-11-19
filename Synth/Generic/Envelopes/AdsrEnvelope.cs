@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class AdsrEnvelope : BaseComponent {
+	public class AdsrEnvelope : MidiComponent {
 		public IComponent Source;
 
 		public double Attack;
@@ -75,11 +75,11 @@
 			// Source.Render() * (isOn ? onCounter > onLength ? Sustain : onLevels[onCounter++] : releaseDrop * offLevels[offCounter++]);
 
 			if (isOn) {
-				if (onCounter > onLength) return Source.Render() * Sustain;
-				return Source.Render() * onLevels[onCounter++];
+				if (onCounter > onLength) return Source.Render(renderFlag) * Sustain;
+				return Source.Render(renderFlag) * onLevels[onCounter++];
 			}
 			if (offCounter > offLength) return 0;
-			return Source.Render() * releaseDrop * offLevels[offCounter++];
+			return Source.Render(renderFlag) * releaseDrop * offLevels[offCounter++];
 		}
 	}
 }

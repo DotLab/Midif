@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public class OnePoleFilter : BaseComponent {
+	public class OnePoleFilter : MidiComponent {
 		public enum FilterType {
 			LowPass,
 			HighPass,
@@ -56,7 +56,7 @@ namespace Midif.Synth {
 
 
 		public override double Render () {
-			return z1 = Source.Render() * a0 + z1 * b1;
+			return z1 = Source.Render(renderFlag) * a0 + z1 * b1;
 		}
 	}
 }

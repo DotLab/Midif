@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth {
-	public abstract class BaseComponent : IComponent {
+	public abstract class MidiComponent : IComponent {
 		public byte Note { get { return note; } }
 
 		public bool IsOn { get { return isOn; } }
@@ -11,6 +11,9 @@
 
 		protected byte note, velocity;
 		protected bool isOn;
+
+		protected double renderCache;
+		protected bool renderFlag;
 
 
 		public virtual void Init (double sampleRate) {
@@ -31,11 +34,18 @@
 		}
 
 		public virtual void NoteOff (byte note, byte velocity) {
-			this.note = note;
-
 			isOn = false;
 		}
 
+
+		public virtual double Render (bool flag) {
+			if (flag != renderFlag) {
+				renderFlag = flag;
+				renderCache = Render();
+			}
+
+			return renderCache;
+		}
 
 		public abstract double Render ();
 	}
