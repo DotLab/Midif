@@ -58,8 +58,8 @@
 		public void MetaEventHandler (MetaEvent metaEvent) {
 			if (metaEvent.Type == MetaEventType.Tempo) {
 				ticksPerSample = (double)file.TicksPerBeat / (metaEvent.Tempo * samplesPerMicrosecond);
-				// ticks per sample = ticks per beat / ms per beat * ms per sample;
-				//                  = ticks per ms * ms per sample;
+				// ticks per sample = ticks per beat / (ms per beat * samples per ms);
+				//                  = ticks per ms / samples per beat;
 				//                  = ticks per sample;
 				ticksPerSecond = (double)file.TicksPerBeat / metaEvent.Tempo * microsecondPerSecond;
 				// ticks per second = ticks per beat / ms per beat * ms per second;
