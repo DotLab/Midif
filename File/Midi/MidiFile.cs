@@ -15,6 +15,8 @@ namespace Midif {
 
 		public int Length;
 
+		public int Polyphony;
+
 		public List<MidiEvent> MidiEvents = new List<MidiEvent>();
 		public List<SysExEvent> SysExEvents = new List<SysExEvent>();
 		public List<MetaEvent> MetaEvents = new List<MetaEvent>();
@@ -71,6 +73,24 @@ namespace Midif {
 			time += (Length - lastTick) / ticksPerSecond;
 		
 			return time;
+		}
+
+		public int GetMaxPolyphony () {
+			var notes = new List<int>();
+			var maxPolyphony = 0;
+	
+			foreach (var midiEvent in MidiEvents)
+				if (midiEvent.Type == MidiEventType.NoteOn) {
+					notes.Add(midiEvent.Note);
+					if (notes.Count > maxPolyphony)
+						maxPolyphony = notes.Count;
+				} else if (midiEvent.Type == MidiEventType.NoteOff)
+					notes.Remove(midiEvent.Note);
+
+			if (notes.Count != 0)
+				throw new System.Exception("Midi Notes not Off.");
+
+			return maxPolyphony;
 		}
 
 

@@ -10,11 +10,10 @@ namespace Midif.Synth {
 		public void Init (double sampleRate) {
 			voices.Clear();
 
-			foreach (var synth in Synths)
+			foreach (var synth in Synths) {
+				synth.Init(sampleRate);
 				voices.AddRange(synth.Voices);
-
-			foreach (var voice in voices)
-				voice.Init(sampleRate);
+			}
 		}
 
 		public void Reset () {
@@ -22,6 +21,7 @@ namespace Midif.Synth {
 				voice.Reset();
 		}
 
+		double lastSample, lastSample2;
 
 		public double RenderLeft (bool flag) {
 			var sample = 0.0;
@@ -39,7 +39,7 @@ namespace Midif.Synth {
 			foreach (var voice in voices)
 				if (voice.LeftComponent.IsActive)
 					sample += voice.RenderRight(flag);
-
+			
 			return sample;
 		}
 

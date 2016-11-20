@@ -92,68 +92,71 @@ namespace Midif.File.Sfz {
 			var fieldType = field.FieldType;
 
 			object obj;
-			if (line.Contains("key") && !line.Contains("track"))
-				obj = ParseNote(line);
-			else if (fieldType == typeof(String))
+//			if (line.Contains("key") && !line.Contains("track"))
+//				obj = ParseNote(line);
+			if (fieldType == typeof(String))
 				obj = value;
 			else if (fieldType.BaseType == typeof(Enum))
 				obj = Enum.Parse(fieldType, value);
-			else
+			else {
 				obj = fieldType.GetMethod("Parse", new [] { typeof(string) }).Invoke(null, new [] { value });
+//				DebugConsole.WriteLine(double.Parse(value));
+			}
 			// Set the field's Value;
 			field.SetValue(region, obj);
+//			DebugConsole.WriteLine(opcode + " : '" + value + "' | " + obj + " ( " + fieldType);
 			// Set the field's Set Flag;
 			typeof(SfzRegion).GetField(opcode + "Set").SetValue(region, true);
 		}
 
-		static byte ParseNote (string name) {
-			int value, i;
-
-			if (int.TryParse(name, out value))
-				return (byte)value;
-			
-			const string notes = "cdefgab";
-			int[] noteValues = { 0, 2, 4, 5, 7, 9, 11 };
-			name = name.ToLower();
-
-			for (i = 0; i < name.Length; i++) {
-				int index = notes.IndexOf(name[i]);
-				if (index >= 0) {
-					value = noteValues[index];
-					i++;
-					break;
-				}
-			}
-
-			while (i < name.Length) {
-				if (name[i] == '#') {
-					value--;
-					i++;
-					break;
-				}
-
-				if (name[i] == 'b') {
-					value--;
-					i++;
-					break;
-				}
-
-				i++;
-			}
-
-			var digit = string.Empty;
-			while (i < name.Length) {
-				if (char.IsDigit(name[i])) {
-					digit += name[i];
-					i++;
-				} else
-					break;
-			}
-
-			if (digit.Equals(string.Empty))
-				digit = "0";
-			return (byte)((int.Parse(digit) + 1) * 12 + value);
-		}
+		//		static byte ParseNote (string name) {
+		//			int value, i;
+		//
+		//			if (int.TryParse(name, out value))
+		//				return (byte)value;
+		//
+		//			const string notes = "cdefgab";
+		//			int[] noteValues = { 0, 2, 4, 5, 7, 9, 11 };
+		//			name = name.ToLower();
+		//
+		//			for (i = 0; i < name.Length; i++) {
+		//				int index = notes.IndexOf(name[i]);
+		//				if (index >= 0) {
+		//					value = noteValues[index];
+		//					i++;
+		//					break;
+		//				}
+		//			}
+		//
+		//			while (i < name.Length) {
+		//				if (name[i] == '#') {
+		//					value--;
+		//					i++;
+		//					break;
+		//				}
+		//
+		//				if (name[i] == 'b') {
+		//					value--;
+		//					i++;
+		//					break;
+		//				}
+		//
+		//				i++;
+		//			}
+		//
+		//			var digit = string.Empty;
+		//			while (i < name.Length) {
+		//				if (char.IsDigit(name[i])) {
+		//					digit += name[i];
+		//					i++;
+		//				} else
+		//					break;
+		//			}
+		//
+		//			if (digit.Equals(string.Empty))
+		//				digit = "0";
+		//			return (byte)((int.Parse(digit) + 1) * 12 + value);
+		//		}
 	}
 }
 

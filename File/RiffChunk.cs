@@ -21,7 +21,7 @@ namespace Midif.File {
 			stream.Read(Data, 0, Size);
 			stream.Position += Pad;
 
-			DebugConsole.WriteLine(this);
+//			DebugConsole.WriteLine(this);
 		}
 
 		public Stream GetStream () {
