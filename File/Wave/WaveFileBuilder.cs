@@ -73,22 +73,22 @@ namespace Midif.File.Wave {
 			case 1:
 				for (int i = 0; i < sampleCount; i++)
 					for (int j = 0; j < file.Channels; j++)
-						file.Samples[j][i] = (float)(stream.ReadByte() - 0x80) / 0x7F;
+						file.Samples[j][i] = (double)(stream.ReadByte() - 0x80) / 0x7F;
 				break;
 			case 2:
 				for (int i = 0; i < sampleCount; i++)
 					for (int j = 0; j < file.Channels; j++)
-						file.Samples[j][i] = (float)(stream.ReadByte() | (sbyte)stream.ReadByte() << 8) / 0x7FFF;
+						file.Samples[j][i] = (double)(stream.ReadByte() | (sbyte)stream.ReadByte() << 8) / 0x7FFF;
 				break;
 			case 3:
 				for (int i = 0; i < sampleCount; i++)
 					for (int j = 0; j < file.Channels; j++)
-						file.Samples[j][i] = (float)(stream.ReadByte() | stream.ReadByte() << 8 | (sbyte)stream.ReadByte() << 16) / 0x7FFFFF;
+						file.Samples[j][i] = (double)(stream.ReadByte() | stream.ReadByte() << 8 | (sbyte)stream.ReadByte() << 16) / 0x7FFFFF;
 				break;
 			case 4:
 				for (int i = 0; i < sampleCount; i++)
 					for (int j = 0; j < file.Channels; j++)
-						file.Samples[j][i] = (float)(stream.ReadByte() | stream.ReadByte() << 8 | stream.ReadByte() << 16 | (sbyte)stream.ReadByte() << 24) / 0x7FFFFFFF;
+						file.Samples[j][i] = (double)(stream.ReadByte() | stream.ReadByte() << 8 | stream.ReadByte() << 16 | (sbyte)stream.ReadByte() << 24) / 0x7FFFFFFF;
 				break;
 			}
 

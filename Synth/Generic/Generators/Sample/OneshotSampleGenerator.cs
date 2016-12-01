@@ -6,7 +6,7 @@
 			}
 		}
 
-		public bool KeyTrack;
+		public bool KeyTrack = true;
 		public int KeyCenter = 60;
 		public int Transpose;
 		public int Tune;
@@ -48,7 +48,7 @@
 
 			phaseStep = (KeyTrack ? SynthTable.Semi2Pitc[note - KeyCenter + Transpose + SynthTable.Semi2PitcShif] : 1) *
 			SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * SampleRate * sampleRateRecip;
-			phase = 0;
+			phase = Start;
 
 			count = 0;
 		}
@@ -58,11 +58,18 @@
 				return 0;
 
 			if ((phase += phaseStep) > duration) {
-				phase %= duration;
+				phase = Start + ((phase - Start) % duration);
 				count++;
 			}
 				
-			return Samples[Start + (int)(phase)] * gain;
+			return Samples[(int)(phase)] * gain;
+
+//			var whole = (int)phase;
+//			var shift = phase - whole;
+//
+//			var delta = (whole < End ? Samples[whole + 1] : Samples[whole]) - Samples[whole];
+//
+//			return (Samples[whole] + shift * delta) * gain;
 		}
 	}
 }

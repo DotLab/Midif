@@ -16,7 +16,13 @@
 		public int Start;
 		public int End;
 
+		/// <summary>
+		/// The start of the loop.
+		/// </summary>
 		public int LoopStart;
+		/// <summary>
+		/// The end of the loop, will be played.
+		/// </summary>
 		public int LoopEnd;
 		int loopDuration;
 
@@ -58,8 +64,9 @@
 			if (useSustain && phase > End)
 				return 0;
 
-			if (!useSustain && phase > LoopEnd)
+			if (!useSustain && phase > LoopEnd) {
 				phase = LoopStart + ((phase - LoopStart) % loopDuration);
+			}
 
 			return Samples[(int)(phase)] * gain;
 
@@ -69,6 +76,10 @@
 //			var delta = (whole < End ? Samples[whole + 1] : Samples[whole]) - Samples[whole];
 //
 //			return (Samples[whole] + shift * delta) * gain;
+		}
+
+		public override string ToString () {
+			return string.Format("[ContinuousSampleGenerator: KeyCenter={0}, Transpose={1}, Tune={2}, Level={3}, Start={4}, End={5}, LoopStart={6}, LoopEnd={7}, SampleRate={8}]", KeyCenter, Transpose, Tune, Level, Start, End, LoopStart, LoopEnd, SampleRate);
 		}
 	}
 }

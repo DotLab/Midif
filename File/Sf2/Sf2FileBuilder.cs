@@ -84,14 +84,14 @@ namespace Midif.File.Sf2 {
 					// [<smpl-ck>] ; The Digital Audio Samples for the upper 16 bits 
 					if (sdtaStream.Position < sdtaStream.Length) {
 						var smplChunk = new RiffChunk(sdtaStream);
-						file.Sample = new short[smplChunk.Size / 2];
+						file.SampleData = new short[smplChunk.Size / 2];
 						for (int i = 0; i < smplChunk.Size; i += 2)
-							file.Sample[i / 2] = BitConverter.ToInt16(smplChunk.Data, i);
+							file.SampleData[i / 2] = BitConverter.ToInt16(smplChunk.Data, i);
 
 						// [<sm24-ck>] ; The Digital Audio Samples for the lower 8 bits 
 						if (sdtaStream.Position < sdtaStream.Length) {
 							var sm24Chunk = new RiffChunk(sdtaStream);
-							file.Sample24 = sm24Chunk.Data;
+							file.SampleData24 = sm24Chunk.Data;
 						}
 					}
 				}
@@ -186,6 +186,8 @@ namespace Midif.File.Sf2 {
 					}
 				}
 			}
+
+			file.Compile();
 
 			return file;
 		}

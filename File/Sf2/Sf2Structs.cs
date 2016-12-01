@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 
+using System.Collections.Generic;
+
 namespace Midif.File.Sf2 {
 	// <pbag-rec> -> struct sfPresetBag
 	// <ibag-rec> -> struct sfInstBag
@@ -13,9 +15,14 @@ namespace Midif.File.Sf2 {
 		// WORD wInstModNdx;
 		public ushort ModNdx;
 
+
 		public Bag (Stream stream) {
 			GenNdx = StreamHelper.ReadUInt16(stream);
 			ModNdx = StreamHelper.ReadUInt16(stream);
+		}
+
+		public override string ToString () {
+			return string.Format("[Bag: GenNdx={0}, ModNdx={1}]", GenNdx, ModNdx);
 		}
 	}
 
@@ -33,6 +40,7 @@ namespace Midif.File.Sf2 {
 		public ModulatorType ModAmtSrc;
 		// SFTransform sfModTransOper;
 		public TransformType ModTrans;
+
 
 		public Modulator (Stream stream) {
 			ModSrc = new ModulatorType(stream);
@@ -52,6 +60,7 @@ namespace Midif.File.Sf2 {
 
 		// rangesType ranges;
 		public byte AmoutLo, AmoutHi;
+
 		// SHORT shAmount;
 		public short AmoutShort {
 			get { return (short)((sbyte)AmoutHi << 8 | AmoutLo); }
@@ -61,11 +70,16 @@ namespace Midif.File.Sf2 {
 			get { return (ushort)(AmoutHi << 8 | AmoutLo); }
 		}
 
+
 		public Generator (Stream stream) {
 			Gen = (GeneratorType)StreamHelper.ReadUInt16(stream);
 
 			AmoutLo = (byte)stream.ReadByte();
 			AmoutHi = (byte)stream.ReadByte();
+		}
+
+		public override string ToString () {
+			return string.Format("[Generator: Gen={0}, AmoutLo={1}, AmoutHi={2}, AmoutShort={3}, AmoutWord={4}]", Gen, AmoutLo, AmoutHi, AmoutShort, AmoutWord);
 		}
 	}
 
@@ -88,6 +102,7 @@ namespace Midif.File.Sf2 {
 		// DWORD dwMorphology;
 		protected uint Morphology;
 
+
 		public PresetHeader (Stream stream) {
 			PresetName = StreamHelper.ReadString(stream, 20);
 			Preset = StreamHelper.ReadUInt16(stream);
@@ -108,9 +123,14 @@ namespace Midif.File.Sf2 {
 		// WORD wInstBagNdx;
 		public ushort InstBagNdx;
 
+
 		public InstrumentHeader (Stream stream) {
 			InstName = StreamHelper.ReadString(stream, 20);
 			InstBagNdx = StreamHelper.ReadUInt16(stream);
+		}
+
+		public override string ToString () {
+			return string.Format("[InstrumentHeader: InstName={0}, InstBagNdx={1}]", InstName, InstBagNdx);
 		}
 	}
 
@@ -138,6 +158,7 @@ namespace Midif.File.Sf2 {
 		// SFSampleLink sfSampleType;
 		public SampleLinkType SampleLinkType;
 
+
 		public SampleHeader (Stream stream) {
 			SampleName = StreamHelper.ReadString(stream, 20);
 			Start = StreamHelper.ReadUInt32(stream);
@@ -149,6 +170,143 @@ namespace Midif.File.Sf2 {
 			Correction = (sbyte)stream.ReadByte();
 			SampleLink = StreamHelper.ReadUInt16(stream);
 			SampleLinkType = (SampleLinkType)StreamHelper.ReadUInt16(stream);
+		}
+	}
+
+	public enum Sf2SampleMode {
+		NoLoop = 0,
+		LoopContinuous = 1,
+		Unsed = 2,
+		LoopSustain = 3,
+	}
+
+	[Serializable]
+	public class Sf2Zone {
+		public List<Generator> Generators = new List<Generator>();
+		public List<Modulator> Modulators = new List<Modulator>();
+
+		#region Range Generators
+
+		public byte LoKey {
+			get { return GetLo(GeneratorType.KeyRange, 0); }
+		}
+
+		public byte HiKey {
+			get { return GetHi(GeneratorType.KeyRange, 127); }
+		}
+
+		public byte LoVel {
+			get { return GetLo(GeneratorType.VelocityRange, 0); }
+		}
+
+		public byte HiVel {
+			get { return GetHi(GeneratorType.VelocityRange, 127); }
+		}
+
+		#endregion
+
+		#region Sample Generators
+
+		public int StartOffset {
+			get { return GetAddressOffset("Start"); }
+		}
+
+		public int EndOffset {
+			get { return GetAddressOffset("End"); }
+		}
+
+		public int StartLoopOffset {
+			get { return GetAddressOffset("StartLoop"); }
+		}
+
+		public int EndLoopOffset {
+			get { return GetAddressOffset("EndLoop"); }
+		}
+
+		public Sf2SampleMode SampleMode {
+			get { return (Sf2SampleMode)GetWord(GeneratorType.SampleModes, (ushort)Sf2SampleMode.NoLoop); }
+		}
+
+		#endregion
+
+		#region Value Generators
+
+		public double Attenuation {
+			get { 
+				var gen = GetGenerator(GeneratorType.InitialAttenuation);
+				return ((gen == null) ? 0 : (double)gen.AmoutShort / 10);
+			}
+		}
+
+		public double CutoffFrequency {
+			get {
+				var gen = GetGenerator(GeneratorType.InitialFilterCutoffFrequency);
+				return 8.176 * Math.Pow(2, ((gen == null) ? 13500 : (double)gen.AmoutShort) / 1200);
+			}
+		}
+
+		#endregion
+
+
+		public Generator GetGenerator (GeneratorType type) {
+			foreach (var gen in Generators)
+				if (gen.Gen == type)
+					return gen;
+			
+			return null;
+		}
+
+		public short GetShort (GeneratorType type, short defult) {
+			var gen = GetGenerator(type);
+
+			return (gen == null) ? defult : gen.AmoutShort;
+		}
+
+		public ushort GetWord (GeneratorType type, ushort defult) {
+			var gen = GetGenerator(type);
+
+			return (gen == null) ? defult : gen.AmoutWord;
+		}
+
+		public byte GetLo (GeneratorType type, byte defult) {
+			var gen = GetGenerator(type);
+
+			return (gen == null) ? defult : gen.AmoutLo;
+		}
+
+		public byte GetHi (GeneratorType type, byte defult) {
+			var gen = GetGenerator(type);
+
+			return (gen == null) ? defult : gen.AmoutHi;
+		}
+
+		public bool HasGenerator (GeneratorType type) {
+			return GetGenerator(type) != null;
+		}
+
+		public int GetAddressOffset (string name) {
+			var offset = GetGenerator((GeneratorType)Enum.Parse(typeof(GeneratorType), name + "AddressOffset"));
+			var coarseOffset = GetGenerator((GeneratorType)Enum.Parse(typeof(GeneratorType), name + "AddressCoarseOffset"));
+
+			return ((offset == null || offset.AmoutShort <= 0) ? 0 : (int)offset.AmoutShort) +
+			0x8000 * ((coarseOffset == null || coarseOffset.AmoutShort <= 0) ? 0 : (int)coarseOffset.AmoutShort);
+		}
+	}
+
+	[Serializable]
+	public class Sf2Instrument {
+		public string Name;
+
+		public List<Sf2Zone> Zones = new List<Sf2Zone>();
+
+		public Sf2Instrument (string name) {
+			Name = name;
+		}
+	}
+
+	[Serializable]
+	public class Sf2Preset : Sf2Instrument {
+		public Sf2Preset (string name) : base(name) {
 		}
 	}
 }
