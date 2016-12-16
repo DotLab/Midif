@@ -31,6 +31,7 @@ namespace Midif.Synth {
 
 			Velc2Gain = new double[Velc2GainLeng];
 			for (int i = 0; i < Velc2GainLeng; i++)
+//				Velc2Gain[i] = i / 127.0f;
 				Velc2Gain[i] = Deci2Gain(40.0 * Math.Log10((double)i / 0x7F));
 		}
 

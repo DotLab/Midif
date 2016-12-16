@@ -4,7 +4,7 @@
 
 		public double Attack;
 		public double Decay;
-		public double Sustain;
+		public double Sustain = 1;
 		public double Release;
 
 		public override bool IsActive { get { return isOn || offCounter < offLength; } }
