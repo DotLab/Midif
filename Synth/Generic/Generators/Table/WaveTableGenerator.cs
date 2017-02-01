@@ -1,8 +1,5 @@
 ﻿namespace Midif.Synth {
-	public class WaveTableGenerator : MidiComponent {
-		public int Transpose;
-		public int Tune;
-
+	public sealed class WaveTableGenerator : MidiGenerator {
 		public double[] WaveTable {
 			set {
 				waveTable = value;
@@ -12,32 +9,28 @@
 			}
 		}
 
-		double[] waveTable, stepTable;
+		double[] waveTable;
 		int tableLength, tableMod;
 
-		double phaseStep;
-		double phase;
 
 		public override void Init (double sampleRate) {
-			base.Init(sampleRate);
-
-			stepTable = new double[SynthTable.Note2FreqLeng];
-			for (int i = 0; i < SynthTable.Note2FreqLeng; i++)
-				stepTable[i] = tableLength *
-				SynthTable.Note2Freq[SynthTable.Clmp2Note(i + Transpose)] *
-				SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] *
-				sampleRateRecip;
+			SampleRateRecip = 1 / sampleRate;
 		}
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			if (!IsOn) phase = 0;
+			phaseStep = tableLength * CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
 
-			phaseStep = stepTable[note];
-			phase = 0;
+			IsOn = true;
 		}
 
-		public override double Render () {
-			return waveTable[(int)(phase += phaseStep) & tableMod];
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+				return RenderCache = waveTable[(int)(phase += phaseStep) & tableMod];
+			}
+
+			return RenderCache;
 		}
 	}
 }

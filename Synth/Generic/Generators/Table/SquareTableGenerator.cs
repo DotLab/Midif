@@ -1,25 +1,24 @@
 ﻿namespace Midif.Synth {
-	public class SquareTableGenerator : MidiComponent {
-		const int TableLength = 0x2;
-		const int TableMod = 0x1;
-		static readonly double[] Table = { -1, 1 };
-
-		public int Transpose;
-		public int Tune;
-
-		double phaseStep;
-		double phase;
+	public sealed class SquareTableGenerator : MidiGenerator {
+		const int TableLength = 2;
+		const int TableMod = 1;
+		static readonly double[] Table = { 1, -1 };
 
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			if (!IsOn) phase = 0;
+			phaseStep = TableLength * CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
 
-			phaseStep = TableLength * SynthTable.Note2Freq[note + Transpose] * SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * sampleRateRecip;
-			phase = 0;
+			IsOn = true;
 		}
 
-		public override double Render () {
-			return Table[(int)(phase += phaseStep) & TableMod];
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+				return RenderCache = Table[(int)(phase += phaseStep) & TableMod];
+			}
+
+			return RenderCache;
 		}
 	}
 }

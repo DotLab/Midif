@@ -1,61 +1,54 @@
 ﻿namespace Midif.Synth {
-	public class ReleaseEnvelope : MidiComponent {
-		public IComponent Source;
+	public sealed class ReleaseEnvelope : MidiComponent {
+		public MidiComponent Source;
 
 		public double Release;
 
-		public override bool IsActive { get { return isOn || offCounter < offLength; } }
-
-		protected int releaseSample;
-		protected double[] offLevels;
-		protected int offLength;
-
-		int offCounter = int.MaxValue;
+		int releaseSample, releaseCounter = -1;
+		double releaseSampleRecip;
 
 
 		public override void Init (double sampleRate) {
-			base.Init(sampleRate);
-
-			BuildLevels();
+			releaseSample = (int)(Release * sampleRate);
+			releaseSampleRecip = 1.0 / releaseSample;
 
 			Source.Init(sampleRate);
 		}
 
-		public virtual void BuildLevels () {
-			releaseSample = (int)(Release * sampleRate);
-
-			offLevels = new double[releaseSample];
-
-			for (int i = 0; i < offLevels.Length; i++)
-				offLevels[i] = 1 - (double)i / releaseSample;
-
-			offLength = offLevels.Length - 1;
-		}
-
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			IsOn = true;
 
-			offCounter = 0;
+			releaseCounter = releaseSample;
 
 			Source.NoteOn(note, velocity);
 		}
 
 		public override void NoteOff (byte note, byte velocity) {
-			base.NoteOff(note, velocity);
+			IsOn = false;
 
 			Source.NoteOff(note, velocity);
 		}
 
+		public override bool IsFinished () {
+			return releaseCounter <= 0;
+		}
 
-		public override double Render () {
-			if (isOn)
-				return Source.Render(renderFlag);
-			
-			if (offCounter > offLength)
-				return 0;
-			
-			return Source.Render(renderFlag) * offLevels[offCounter++];
+
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+
+				if (IsOn)
+					return RenderCache = Source.Render(flag);
+
+				if (releaseCounter <= 0)
+					return RenderCache = 0;
+				
+				return RenderCache = Source.Render(flag) * (releaseCounter-- * releaseSampleRecip);
+			}
+
+			return RenderCache;
 		}
 	}
 }

@@ -4,9 +4,10 @@ namespace Midif.Synth.FamiTracker {
 	public abstract class FamiBase : MidiComponent {
 		public const double ClockFreq = 1789772.727;
 
-		public static readonly double[] VibratoDepthTable = {
-			1.0, 1.5, 2.5, 4.0, 5.0, 7.0, 10.0, 12.0, 14.0, 17.0, 22.0, 30.0, 44.0, 64.0, 96.0, 128.0
-		};
+		public static readonly double[] VibratoDepthTable =
+			{
+				1.0, 1.5, 2.5, 4.0, 5.0, 7.0, 10.0, 12.0, 14.0, 17.0, 22.0, 30.0, 44.0, 64.0, 96.0, 128.0
+			};
 
 		public static readonly int[] VibratoTable;
 		public static readonly int[] TremoloTable;
@@ -36,12 +37,6 @@ namespace Midif.Synth.FamiTracker {
 			Note2PitcTable = new int[SynthTable.Note2FreqLeng];
 			for (int i = 0; i < SynthTable.Note2FreqLeng; i++)
 				Note2PitcTable[i] = (int)((ClockFreq / 16 / SynthTable.Note2Freq[i]) - 0.5);
-		}
-
-		public override bool IsActive {
-			get {
-				return isOn || (!muted && VolumeMod.IsActive);
-			}
 		}
 
 		#region Mod
@@ -113,9 +108,10 @@ namespace Midif.Synth.FamiTracker {
 
 
 		public override void Init (double sampleRate) {
-			base.Init(sampleRate);
+			SampleRate = sampleRate;
+			SampleRateRecip = 1 / sampleRate;
 
-			framesPerSample = FrameRate * sampleRateRecip;
+			framesPerSample = FrameRate * SampleRateRecip;
 		
 			VolumeMod.Init();
 			ArpeggioMod.Init();
@@ -135,7 +131,9 @@ namespace Midif.Synth.FamiTracker {
 		}
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			IsOn = true;
+			Note = note;
+			Velocity = velocity;
 		
 			if (VolumeMod.Enabled) VolumeMod.NoteOn();
 			if (ArpeggioMod.Enabled) ArpeggioMod.NoteOn();
@@ -184,14 +182,30 @@ namespace Midif.Synth.FamiTracker {
 			AdvanceFrame();
 		}
 
-		public override void NoteOff (byte note, byte velocity) {
-			base.NoteOff(note, velocity);
+		public sealed override void NoteOff (byte note, byte velocity) {
+			IsOn = false;
 		
 			if (VolumeMod.Enabled) VolumeMod.NoteOff();
 			if (ArpeggioMod.Enabled) ArpeggioMod.NoteOff();
 			if (PitchMod.Enabled) PitchMod.NoteOff();
 			if (DutyMod.Enabled) DutyMod.NoteOff();
 		}
+
+		public sealed override bool IsFinished () {
+			return muted || !VolumeMod.IsActive;
+		}
+
+		public sealed override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+
+				return RenderCache = Render();
+			}
+
+			return RenderCache;
+		}
+
+		public abstract double Render ();
 
 		public void AdvanceFrame () {
 //			Console.WriteLine("\n(Master) New Frame");
@@ -238,7 +252,7 @@ namespace Midif.Synth.FamiTracker {
 
 			#region Note 
 
-			currentNote = note;
+			currentNote = Note;
 
 			if (ArpeggioMod.Enabled) {
 				ArpeggioMod.AdvanceFrame();
@@ -349,7 +363,6 @@ namespace Midif.Synth.FamiTracker {
 			#endregion
 
 //			Console.WriteLine("(Master) Consolidated, currentVolume : {0} currentNote : {1} currentPitch : {2}", currentVolume, currentNote, currentPitch);
-
 		}
 	}
 }

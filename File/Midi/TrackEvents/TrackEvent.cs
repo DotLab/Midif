@@ -36,9 +36,8 @@ namespace Midif {
 		Trk28 = 1 << 28,
 		Trk29 = 1 << 29,
 		Trk30 = 1 << 30,
-		Trk31 = 1 << 31,
 
-		All = Trk0 | Trk1 | Trk2 | Trk3 | Trk4 | Trk5 | Trk6 | Trk7 | Trk8 | Trk9 | Trk10 | Trk11 | Trk12 | Trk13 | Trk14 | Trk15 | Trk16 | Trk17 | Trk18 | Trk19 | Trk20 | Trk21 | Trk22 | Trk23 | Trk24 | Trk25 | Trk26 | Trk27 | Trk28 | Trk29 | Trk30 | Trk31
+		All = Trk0 | Trk1 | Trk2 | Trk3 | Trk4 | Trk5 | Trk6 | Trk7 | Trk8 | Trk9 | Trk10 | Trk11 | Trk12 | Trk13 | Trk14 | Trk15 | Trk16 | Trk17 | Trk18 | Trk19 | Trk20 | Trk21 | Trk22 | Trk23 | Trk24 | Trk25 | Trk26 | Trk27 | Trk28 | Trk29 | Trk30
 	}
 
 	public delegate void TrackEventHandler (TrackEvent trackEvent);

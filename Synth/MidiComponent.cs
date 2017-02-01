@@ -1,52 +1,68 @@
 ﻿namespace Midif.Synth {
-	public abstract class MidiComponent : IComponent {
-		public byte Note { get { return note; } }
+	[System.Serializable]
+	public abstract class MidiComponent {
+		public double SampleRate, SampleRateRecip;
 
-		public bool IsOn { get { return isOn; } }
+		public byte Note, Velocity;
+		public bool IsOn;
 
-		public virtual bool IsActive { get { return isOn; } }
+		public bool RenderFlag;
+		public double RenderCache;
 
-
-		protected double sampleRate, sampleRateRecip;
-
-		protected byte note, velocity;
-		protected bool isOn;
-
-		protected double renderCache;
-		protected bool renderFlag;
-
-
+		/// <summary>
+		/// Initialize the component using a specified sampleRate.
+		/// May or may not set SampleRate or SampleRateRecip.
+		/// </summary>
+		/// <param name="sampleRate">Sample rate.</param>
 		public virtual void Init (double sampleRate) {
-			this.sampleRate = sampleRate;
-			sampleRateRecip = 1 / sampleRate;
+			SampleRate = sampleRate;
+			SampleRateRecip = 1 / sampleRate;
 		}
 
-		public virtual void Reset () {
-			Init(sampleRate);
-		}
-
-
+		/// <summary>
+		/// Turn on the note.
+		/// Must set IsOn.
+		/// </summary>
+		/// <param name="note">Note.</param>
+		/// <param name="velocity">Velocity.</param>
 		public virtual void NoteOn (byte note, byte velocity) {
-			this.note = note;
-			this.velocity = velocity;
-
-			isOn = true;
+			IsOn = true;
+			Note = note;
+			Velocity = velocity;
 		}
 
+		/// <summary>
+		/// Turn off the note.
+		/// Must set IsOn.
+		/// </summary>
+		/// <param name="note">Note.</param>
+		/// <param name="velocity">Velocity.</param>
 		public virtual void NoteOff (byte note, byte velocity) {
-			isOn = false;
+			IsOn = false;
 		}
 
+		/// <summary>
+		/// Determines whether this component is finished.
+		/// Assume that IsOn == false; the component is turned off.
+		/// The upper component is responsable for checking IsOn.
+		/// </summary>
+		/// <returns><c>true</c> if this component is finished; otherwise, <c>false</c>.</returns>
+		public virtual bool IsFinished () {
+			return true;
+		}
 
+		/// <summary>
+		/// Render the component.
+		/// Must check RenderFlag and set RenderCache.
+		/// </summary>
+		/// <param name="flag">Flip the flag to render new frame.</param>
 		public virtual double Render (bool flag) {
-			if (flag != renderFlag) {
-				renderFlag = flag;
-				renderCache = Render();
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+				return RenderCache = 0;
 			}
 
-			return renderCache;
+			return RenderCache;
 		}
-
-		public abstract double Render ();
 	}
 }

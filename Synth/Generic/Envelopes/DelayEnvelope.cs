@@ -1,18 +1,14 @@
 ﻿namespace Midif.Synth {
-	public class DelayEnvelope : MidiComponent {
-		public IComponent Source;
+	public sealed class DelayEnvelope : MidiComponent {
+		public MidiComponent Source;
 
 		public double Delay;
 
-		public override bool IsActive { get { return isOn || Source.IsActive; } }
-
-		protected int delaySample;
+		int delaySample;
 		int delayCounter;
 
 
 		public override void Init (double sampleRate) {
-			base.Init(sampleRate);
-		
 			delaySample = (int)(Delay * sampleRate);
 
 			Source.Init(sampleRate);
@@ -20,7 +16,7 @@
 
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			IsOn = true;
 		
 			delayCounter = delaySample;
 		
@@ -28,19 +24,29 @@
 		}
 
 		public override void NoteOff (byte note, byte velocity) {
-			base.NoteOff(note, velocity);
+			IsOn = false;
 
 			Source.NoteOff(note, velocity);
 		}
 
+		public override bool IsFinished () {
+			return Source.IsOn || Source.IsFinished();
+		}
 
-		public override double Render () {
-			// if is faster by 2 ticks
-			if (delayCounter < 0)
-				return Source.Render(renderFlag);
-			delayCounter--;
-			return 0;
-//			return delayCounter-- > 0 ? 0 : Source.Render();
+
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+		
+				if (delayCounter > 0) {
+					delayCounter--;
+					return RenderCache = 0;
+				}
+
+				return RenderCache = Source.Render(flag);
+			}
+
+			return RenderCache;
 		}
 	}
 }

@@ -1,19 +1,19 @@
 ﻿namespace Midif.Synth.FamiTracker {
-	public class NesNoise : FamiBase {
-		public static readonly double[] PeriodTable = {
-			4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068,
-		};
+	public sealed class NesNoise : FamiBase {
+		public static readonly double[] PeriodTable =
+			{
+				4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068,
+			};
 
 		// pitch 2 step 0 ~ 0x7FF
-		protected static double[] stepTable;
+		static double[] stepTable;
 
-		protected double gain;
-		protected double step;
-		protected double phase;
+		double gain;
+		double step;
+		double phase;
 
-		protected int period;
-		protected uint shiftReg = 1;
-		protected int noiseMode = 13;
+		uint shiftReg = 1;
+		int noiseMode = 13;
 
 		public override void Init (double sampleRate) {
 			base.Init(sampleRate);
@@ -21,7 +21,7 @@
 			if (stepTable == null) {
 				stepTable = new double[16];
 				for (int i = 0; i < 16; i++)
-					stepTable[i] = (ClockFreq / (PeriodTable[i] + 1)) * sampleRateRecip; 	
+					stepTable[i] = (ClockFreq / (PeriodTable[i] + 1)) * SampleRateRecip; 	
 			}
 		}
 

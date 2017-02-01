@@ -1,5 +1,5 @@
 ﻿namespace Midif.Synth.FamiTracker {
-	public class NesTriangle : FamiBase {
+	public sealed class NesTriangle : FamiBase {
 		public static readonly double[] WaveTable;
 
 		static NesTriangle () {
@@ -9,11 +9,11 @@
 		}
 
 		// pitch 2 step 0 ~ 0x7FF
-		protected static double[] stepTable;
+		static double[] stepTable;
 
-		protected double gain;
-		protected double step;
-		protected double phase;
+		double gain;
+		double step;
+		double phase;
 
 		public override void Init (double sampleRate) {
 			base.Init(sampleRate);
@@ -21,7 +21,7 @@
 			if (stepTable == null) {
 				stepTable = new double[0x800];
 				for (int i = 0; i < 0x800; i++)
-					stepTable[i] = 64 * (ClockFreq / 16 / (i + 1)) * sampleRateRecip; 	
+					stepTable[i] = 64 * (ClockFreq / 16 / (i + 1)) * SampleRateRecip; 	
 			}
 		}
 

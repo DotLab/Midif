@@ -1,24 +1,23 @@
 ﻿namespace Midif.Synth {
 	public class AdsrEnvelope : MidiComponent {
-		public IComponent Source;
+		public MidiComponent Source;
 
 		public double Attack;
 		public double Decay;
 		public double Sustain = 1;
 		public double Release;
 
-		public override bool IsActive { get { return isOn || offCounter < offLength; } }
-
 		protected int attackSample, decaySample, releaseSample;
 		protected double decayDrop, releaseDrop;
+
 		protected double[] onLevels, offLevels;
 		protected int onLength, offLength;
-
 		int onCounter, offCounter = int.MaxValue;
 
 
-		public override void Init (double sampleRate) {
-			base.Init(sampleRate);
+		public sealed override void Init (double sampleRate) {
+			SampleRate = sampleRate;
+			SampleRateRecip = 1 / sampleRate;
 		
 			BuildLevels();
 
@@ -26,60 +25,74 @@
 		}
 
 		public virtual void BuildLevels () {
-			attackSample = (int)(Attack * sampleRate);
-			decaySample = (int)(Decay * sampleRate);
-			releaseSample = (int)(Release * sampleRate);
+			attackSample = (int)(Attack * SampleRate);
+			decaySample = (int)(Decay * SampleRate);
+			releaseSample = (int)(Release * SampleRate);
 
 			decayDrop = 1 - Sustain;
 			releaseDrop = Sustain;
 
 			onLevels = new double[attackSample + decaySample];
 			offLevels = new double[releaseSample];
-
-			for (int i = 0; i < onLevels.Length; i++)
+//			Visualizer.Buffers[6] = new Visualizer.Buffer(onLevels.Length, UnityEngine.Color.blue);
+			for (int i = 0; i < onLevels.Length; i++) {
 				onLevels[i] = 
 					i < attackSample ? (double)i / attackSample :
 					1 - decayDrop * (i - attackSample) / decaySample;
-			for (int i = 0; i < offLevels.Length; i++)
+//				Visualizer.Buffers[6].Push((float)onLevels[i]);
+			}
+//			Visualizer.Buffers[7] = new Visualizer.Buffer(offLevels.Length, UnityEngine.Color.grey);
+			for (int i = 0; i < offLevels.Length; i++) {
 				offLevels[i] = 1 - (double)i / releaseSample;
-
+//				Visualizer.Buffers[7].Push((float)offLevels[i]);
+			}
 			onLength = onLevels.Length - 1;
 			offLength = offLevels.Length - 1;
 		}
 
 
-		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+		public sealed override void NoteOn (byte note, byte velocity) {
+			IsOn = true;
 
 			onCounter = offCounter = 0;
 		
 			Source.NoteOn(note, velocity);
 		}
 
-		public override void NoteOff (byte note, byte velocity) {
-			base.NoteOff(note, velocity);
+		public sealed override void NoteOff (byte note, byte velocity) {
+			IsOn = false;
 
-			releaseDrop = onCounter > onLength ? Sustain : onLevels[onCounter];
+			if (onCounter > onLength) {
+				releaseDrop = Sustain;
+			} else {
+				releaseDrop = onLevels[onCounter];
+			}
 
-			if (releaseDrop == 0)
-				offCounter = int.MaxValue;
-			
 			Source.NoteOff(note, velocity);
 		}
 
+		public sealed override bool IsFinished () {
+			return offCounter >= offLength;
+		}
 
-		public override double Render () {
-			// if is faster by 5 ticks
-			// return
-			// offCounter > offLength ? 0 :
-			// Source.Render() * (isOn ? onCounter > onLength ? Sustain : onLevels[onCounter++] : releaseDrop * offLevels[offCounter++]);
+		public sealed override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
 
-			if (isOn) {
-				if (onCounter > onLength) return Source.Render(renderFlag) * Sustain;
-				return Source.Render(renderFlag) * onLevels[onCounter++];
+				if (IsOn) {
+					if (onCounter > onLength)
+						return RenderCache = Source.Render(RenderFlag) * Sustain;
+
+					return RenderCache = Source.Render(RenderFlag) * onLevels[onCounter++];
+				}
+
+				if (offCounter >= offLength)
+					return RenderCache = 0;
+
+				return RenderCache = Source.Render(RenderFlag) * releaseDrop * offLevels[offCounter++];
 			}
-			if (offCounter > offLength) return 0;
-			return Source.Render(renderFlag) * releaseDrop * offLevels[offCounter++];
+
+			return RenderCache;
 		}
 	}
 }

@@ -1,6 +1,7 @@
 ﻿namespace Midif.Synth.FamiTracker {
-	public class NesPulse : FamiBase {
-		public static readonly double[] WaveTable = {
+	public sealed class NesPulse : FamiBase {
+		public static readonly double[] WaveTable =
+			{
 			0, 1, 0, 0, 0, 0, 0, 0, // 0 (12.5%)
 			0, 1, 1, 0, 0, 0, 0, 0, // 1 (25%)
 			0, 1, 1, 1, 1, 0, 0, 0, // 2 (50%)
@@ -8,11 +9,11 @@
 		};
 
 		// pitch 2 step 0 ~ 0x7FF
-		protected static double[] stepTable;
+		static double[] stepTable;
 
-		protected double gain;
-		protected double step;
-		protected double phase;
+		double gain;
+		double step;
+		double phase;
 
 		public override void Init (double sampleRate) {
 			base.Init(sampleRate);
@@ -20,7 +21,7 @@
 			if (stepTable == null) {
 				stepTable = new double[0x800];
 				for (int i = 0; i < 0x800; i++)
-					stepTable[i] = 8 * (ClockFreq / 16 / (i + 1)) * sampleRateRecip; 	
+					stepTable[i] = 8 * (ClockFreq / 16 / (i + 1)) * SampleRateRecip; 	
 			}
 		}
 

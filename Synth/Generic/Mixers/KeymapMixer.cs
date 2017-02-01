@@ -1,19 +1,11 @@
 ﻿namespace Midif.Synth {
-	public class KeymapMixer : MidiComponent {
-		public override bool IsActive {
-			get {
-				return isOn || (!disabled && Sources[note].IsActive);
-			}
-		}
-
-		public readonly IComponent[] Sources = new IComponent[0x80];
+	public sealed class KeymapMixer : MidiComponent {
+		public readonly MidiComponent[] Sources = new MidiComponent[0x80];
 
 		bool disabled = true;
 
 
 		public override void Init (double sampleRate) {
-			base.Init(sampleRate);
-
 			foreach (var source in Sources)
 				if (source != null)
 					source.Init(sampleRate);
@@ -21,24 +13,36 @@
 
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
-		
-			disabled = Sources[note] == null;
+			IsOn = true;
+			Note = note;
 
-			if (!disabled)
+			if (Sources[note] == null)
+				disabled = true;
+			else
 				Sources[note].NoteOn(note, velocity);
 		}
 
 		public override void NoteOff (byte note, byte velocity) {
-			base.NoteOff(note, velocity);
-		
+			IsOn = false;
+
 			if (!disabled)
 				Sources[note].NoteOff(note, velocity);
 		}
 
+		public override bool IsFinished () {
+			return disabled || (!Sources[Note].IsOn && Sources[Note].IsFinished());
+		}
 
-		public override double Render () {
-			return disabled ? 0 : Sources[note].Render(renderFlag);
+
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+
+				if (disabled) return RenderCache = 0;
+				return RenderCache = Sources[Note].Render(RenderFlag);
+			}
+
+			return RenderCache;
 		}
 	}
 }

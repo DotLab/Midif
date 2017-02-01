@@ -1,75 +1,60 @@
 ﻿namespace Midif.Synth {
-	public class OneshotSampleGenerator : MidiComponent {
-		public override bool IsActive {
-			get {
-				return isOn || (ignoreNoteOff && count < Count);
-			}
-		}
+	public sealed class OneshotSampleGenerator : SampleGenerator {
+		/// <summary>
+		/// Whether to play the sample a fixed number of times, ignoring NoteOff and any loop information.
+		/// </summary>
+		public bool IgnoreNoteOff = true;
 
-		public bool KeyTrack = true;
-		public int KeyCenter = 60;
-		public int Transpose;
-		public int Tune;
-
-		public double Level;
-		double gain;
-
-		public int Start;
-		public int End;
-		int duration;
-
-		// If Count > 0, ignore NoteOff.
 		public int Count;
-		bool ignoreNoteOff;
-
-		public double[] Samples;
-		public double SampleRate;
-
-		double phaseStep;
-		double phase;
-
-		int count;
-
+		int count = int.MaxValue;
 
 		public override void Init (double sampleRate) {
-			base.Init(sampleRate);
+			SampleRateRecip = 1 / sampleRate;
 
-			if (End <= Start)
-				End = Samples.Length;
-
-			duration = End - Start;
-			ignoreNoteOff = Count > 0;
-			count = Count;
 			gain = SynthTable.Deci2Gain(Level);
+			duration = End - Start;
 		}
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			IsOn = true;
 
-			phaseStep = (KeyTrack ? SynthTable.Semi2Pitc[note - KeyCenter + Transpose + SynthTable.Semi2PitcShif] : 1) *
-			SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * SampleRate * sampleRateRecip;
-			phase = Start;
+			phaseStep = SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * Rate * SampleRateRecip;
+			if (KeyTrack) phaseStep *= SynthTable.Semi2Pitc[note - KeyCenter + Transpose + SynthTable.Semi2PitcShif];
+			if (!IgnoreNoteOff) phase = Start;
 
 			count = 0;
 		}
 
-		public override double Render () {
-			if (ignoreNoteOff && count >= Count)
-				return 0;
 
-			if ((phase += phaseStep) > duration) {
-				phase = Start + ((phase - Start) % duration);
-				count++;
+		public override void NoteOff (byte note, byte velocity) {
+			IsOn = false;
+
+			// If not IgnoreNoteOff, truncate the repetition;
+			if (!IgnoreNoteOff && count < Count - 1)
+				count = Count - 1;
+		}
+
+		public override bool IsFinished () {
+			return !IgnoreNoteOff || count < Count;
+		}
+
+
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+
+				if (count >= Count)
+					return RenderCache = 0;
+
+				if ((phase += phaseStep) > duration) {
+					phase = Start + ((phase - Start) % duration);
+					count++;
+				}
+
+				return RenderCache = Samples[(int)(phase)] * gain;
 			}
-				
-			return Samples[(int)(phase)] * gain;
 
-//			var whole = (int)phase;
-//			var shift = phase - whole;
-//
-//			var delta = (whole < End ? Samples[whole + 1] : Samples[whole]) - Samples[whole];
-//
-//			return (Samples[whole] + shift * delta) * gain;
+			return RenderCache;
 		}
 	}
 }

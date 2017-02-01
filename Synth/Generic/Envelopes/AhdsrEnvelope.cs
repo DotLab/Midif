@@ -1,15 +1,15 @@
 ﻿namespace Midif.Synth {
-	public class AhdsrEnvelope : AdsrEnvelope {
+	public sealed class AhdsrEnvelope : AdsrEnvelope {
 		public double Hold;
 
-		protected int holdSample;
+		int holdSample;
 
 
 		public override void BuildLevels () {
-			attackSample = (int)(Attack * sampleRate);
-			holdSample = (int)(Hold * sampleRate);
-			decaySample = (int)(Decay * sampleRate);
-			releaseSample = (int)(Release * sampleRate);
+			attackSample = (int)(Attack * SampleRate);
+			holdSample = (int)(Hold * SampleRate);
+			decaySample = (int)(Decay * SampleRate);
+			releaseSample = (int)(Release * SampleRate);
 
 			decayDrop = 1 - Sustain;
 			releaseDrop = Sustain;

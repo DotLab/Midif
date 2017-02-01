@@ -1,23 +1,19 @@
-﻿using System;
-
-namespace Midif.Synth {
-	public class SineGenerator : MidiComponent {
-		public int Transpose;
-		public int Tune;
-
-		double phaseStep;
-		double phase;
-
-
+﻿namespace Midif.Synth {
+	public sealed class SineGenerator : MidiGenerator {
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			if (!IsOn) phase = 0;
+			phaseStep = 2 * System.Math.PI * CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
 
-			phaseStep = 2 * Math.PI * SynthTable.Note2Freq[note + Transpose] * SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * sampleRateRecip;
-			phase = 0;
+			IsOn = true;
 		}
 
-		public override double Render () {
-			return Math.Sin(phase += phaseStep);
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+				return RenderCache = System.Math.Sin(phase += phaseStep);
+			}
+
+			return RenderCache;
 		}
 	}
 }

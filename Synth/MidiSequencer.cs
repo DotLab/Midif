@@ -1,8 +1,12 @@
 ﻿namespace Midif.Synth.Sequencer {
-	public class MidiSequencer : ISequencer, IMetaEventHandler {
+	public class MidiSequencer : IMetaEventHandler {
+		public delegate void EndOfFrameHandler ();
+
 		public event MidiEventHandler OnProcessMidiEvent;
 
 		public event MetaEventHandler OnProcessMetaEvent;
+
+		public event EndOfFrameHandler OnEndOfFrameEvent;
 
 		const double microsecondPerSecond = 1000000;
 		double samplesPerMicrosecond;
@@ -100,10 +104,15 @@
 		public void AdvanceTicks (double ticks) {
 			tick += ticks;
 
-			while (midiIndex < file.MidiEvents.Count && file.MidiEvents[midiIndex].Tick <= tick)
-				OnProcessMidiEvent(file.MidiEvents[midiIndex++]);
 			while (metaIndex < file.MetaEvents.Count && file.MetaEvents[metaIndex].Tick <= tick)
 				OnProcessMetaEvent(file.MetaEvents[metaIndex++]);
+			
+			var frame = false;
+			while (midiIndex < file.MidiEvents.Count && file.MidiEvents[midiIndex].Tick <= tick) {
+				frame = true;
+				OnProcessMidiEvent(file.MidiEvents[midiIndex++]);
+			}
+			if (frame) OnEndOfFrameEvent();
 		}
 
 

@@ -15,8 +15,6 @@ namespace Midif {
 
 		public int Length;
 
-		public int Polyphony;
-
 		public List<MidiEvent> MidiEvents = new List<MidiEvent>();
 		public List<SysExEvent> SysExEvents = new List<SysExEvent>();
 		public List<MetaEvent> MetaEvents = new List<MetaEvent>();
@@ -57,6 +55,25 @@ namespace Midif {
 			Length = MidiEvents[MidiEvents.Count - 1].Tick + TicksPerBeat;
 		}
 
+		public double LengthInSeconds;
+		public List<int> Tracks = new List<int>();
+		public List<int> Channels = new List<int>();
+
+		public void Analyze () {
+			GetLengthInSeconds();
+
+			foreach (var midiEvent in MidiEvents) {
+				if (!Tracks.Contains(midiEvent.Track))
+					Tracks.Add(midiEvent.Track);
+
+				if (!Channels.Contains(midiEvent.Channel))
+					Channels.Add(midiEvent.Channel);
+			}
+
+			Tracks.Sort();
+			Channels.Sort();
+		}
+
 		public double GetLengthInSeconds () {
 			const double microsecondPerSecond = 1000000;
 			var ticksPerSecond = (double)TicksPerBeat / 500000 * microsecondPerSecond;
@@ -69,30 +86,11 @@ namespace Midif {
 					lastTick = metaEvent.Tick;
 					ticksPerSecond = (double)TicksPerBeat / metaEvent.Tempo * microsecondPerSecond;
 				}
-			
+
 			time += (Length - lastTick) / ticksPerSecond;
-		
-			return time;
+
+			return LengthInSeconds = time;
 		}
-
-		public int GetMaxPolyphony () {
-			var notes = new List<int>();
-			var maxPolyphony = 0;
-	
-			foreach (var midiEvent in MidiEvents)
-				if (midiEvent.Type == MidiEventType.NoteOn) {
-					notes.Add(midiEvent.Note);
-					if (notes.Count > maxPolyphony)
-						maxPolyphony = notes.Count;
-				} else if (midiEvent.Type == MidiEventType.NoteOff)
-					notes.Remove(midiEvent.Note);
-
-			if (notes.Count != 0)
-				throw new System.Exception("Midi Notes not Off.");
-
-			return maxPolyphony;
-		}
-
 
 		public override string ToString () {
 			return string.Format("[MidiFile: Format={0}, NumberOfTracks={1}, TicksPerBeat={2}, Length={3}]", Format, NumberOfTracks, TicksPerBeat, Length);

@@ -1,7 +1,5 @@
-﻿using System;
-
-namespace Midif.Synth {
-	public class SineTableGenerator : MidiComponent {
+﻿namespace Midif.Synth {
+	public sealed class SineTableGenerator : MidiGenerator {
 		const int TableLength = 0x800;
 		const int TableMod = 0x7FF;
 		static readonly double[] Table;
@@ -9,25 +7,24 @@ namespace Midif.Synth {
 		static SineTableGenerator () {
 			Table = new double[TableLength];
 			for (int i = 0; i < TableLength; i++)
-				Table[i] = Math.Sin(2 * Math.PI * i / TableLength);
+				Table[i] = System.Math.Sin(2 * System.Math.PI * i / TableLength);
 		}
-
-		public int Transpose;
-		public int Tune;
-
-		double phaseStep;
-		double phase;
 
 
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			if (!IsOn) phase = 0;
+			phaseStep = TableLength * CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
 
-			phaseStep = TableLength * SynthTable.Note2Freq[note + Transpose] * SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * sampleRateRecip;
-			phase = 0;
+			IsOn = true;
 		}
 
-		public override double Render () {
-			return Table[(int)(phase += phaseStep) & TableMod];
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+				return RenderCache = Table[(int)(phase += phaseStep) & TableMod];
+			}
+
+			return RenderCache;
 		}
 	}
 }

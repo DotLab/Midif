@@ -1,49 +1,48 @@
-﻿namespace Midif.Synth {
-	public class MidiSynth : ISynth {
-		public readonly int Polyphony;
+﻿using System.Collections.Generic;
 
-		public readonly MidiVoice[] Voices;
+namespace Midif.Synth {
+	/// <summary>
+	/// Midi Synthesizer represent a synthesizer model in a mixer.
+	/// It offers control over the placement and sequencing of the synthesizer.
+	/// </summary>
+	[System.Serializable]
+	public class MidiSynth {
+		public MidiVoiceDelegate VoiceBuilder;
+		public List<MidiVoice> Voices = new List<MidiVoice>();
+		public bool DynamicPolyphony = true;
+		public int Count;
 
-
-		#region Transpose, Level, Pan, and Width
-
-		public int Transpose;
-
-		public double Level {
-			get { return level; }
-			set {
-				level = value;
-				gain = SynthTable.Deci2Gain(level);
-			}
-		}
-
-		public double Pan;
-
-		public double Width = 0.5;
-
-		double level, gain = 1;
-
-		#endregion
-
-		#region Track and Channel
+		public Queue<MidiVoice> SustainedVoices = new Queue<MidiVoice>();
 
 		public MidiTrack Track = MidiTrack.All;
-
 		public MidiChannel Channel = MidiChannel.All;
 
-		#endregion
+		public double Gain = 1;
+		public double Expression = 1;
+
+		public double Pan;
+		public double Width = 0.5;
+
+		public bool Sustain;
 
 
-		public MidiSynth (MidiVoiceBuilder voiceBuilder, int polyphony = 4) {
-			Polyphony = polyphony;
+		/// <summary>
+		/// Initializes a new instance of the<see cref="Midif.Synth.MidiSynth"/>class.
+		/// </summary>
+		/// <param name="voiceBuilder">Voice builder.</param>
+		/// <param name="polyphony">Initial voice count. A negative polyphony means fixed polyphony.</param>
+		public MidiSynth (MidiVoiceDelegate voiceBuilder, int polyphony = 4) {
+			VoiceBuilder = voiceBuilder;
 
-			if (polyphony > 0) {
-				Voices = new MidiVoice[Polyphony];
-				for (int i = 0; i < Polyphony; i++)
-					Voices[i] = voiceBuilder();
-			} else {
-				Voices = new [] { voiceBuilder() };
+			if (polyphony < 0) {
+				DynamicPolyphony = false;
+				polyphony = -polyphony;
 			}
+
+			while (polyphony-- > 0)
+				Voices.Add(voiceBuilder());
+			
+			Count = Voices.Count;
 		}
 
 
@@ -52,68 +51,32 @@
 				voice.Init(sampleRate);
 		}
 
-		public void Reset () {
-			foreach (var voice in Voices)
-				voice.Reset();
-		}
-
-
-		public double RenderLeft (bool flag) {
-			var sample = 0.0;
-
-			foreach (var voice in Voices)
-				if (voice.LeftComponent.IsActive)
-					sample += voice.RenderLeft(flag);
-
-			return sample;
-		}
-
-		public double RenderRight (bool flag) {
-			var sample = 0.0;
-
-			foreach (var voice in Voices)
-				if (voice.LeftComponent.IsActive)
-					sample += voice.RenderRight(flag);
-
-			return sample;
-		}
-
-
 		public void MidiEventHandler (MidiEvent midiEvent) {
-			if ((midiEvent.MidiTrack & Track) == midiEvent.MidiTrack &&
-			    (midiEvent.MidiChannel & Channel) == midiEvent.MidiChannel) {
-				switch (midiEvent.Type) {
-				case MidiEventType.NoteOn:
-					foreach (var voice in Voices)
-						if (!(Polyphony > 0 && voice.LeftComponent.IsActive)) {
-							// var voicePan = Pan + (Width == 0 ? 0 : ((note % 12) - 6.0) / 6.0 * Width);
-							var voicePan = Pan + (Width == 0 ? 0 : (midiEvent.Note - 60.0) / 60.0 * Width);
-							voice.LeftGain = gain * (0.5 - voicePan * 0.5) * SynthTable.Velc2Gain[midiEvent.Velocity];
-							voice.RightGain = gain * (0.5 + voicePan * 0.5) * SynthTable.Velc2Gain[midiEvent.Velocity];
-							voice.NoteOn(midiEvent.Note, midiEvent.Velocity);
-							break;
-						}
-					break;
-				case MidiEventType.NoteOff:
-					foreach (var voice in Voices)
-						if (voice.LeftComponent.IsOn && voice.LeftComponent.Note == midiEvent.Note) {
-							voice.NoteOff(midiEvent.Note, midiEvent.Velocity);
-							break;
-						}
-					break;
-//				case MidiEventType.Controller:
-//					switch (midiEvent.Controller) {
-//					case MidiControllerType.Sustain:
-//						foreach (var voice in Voices)
-//							if (voice.LeftComponent.IsOn) {
-//								voice.LeftGain = leftGain * SynthTable.Velc2Gain[midiEvent.Value];
-//								voice.RightGain = rightGain * SynthTable.Velc2Gain[midiEvent.Value];
-//							}
-//						break;
-//					}
-//					break;
+			if (midiEvent.Type == MidiEventType.Controller) {
+				
+				if (midiEvent.Controller == MidiControllerType.MainVolume) {
+					Gain = SynthTable.Velc2Gain[midiEvent.Value];
+
+				} else if (midiEvent.Controller == MidiControllerType.ExpressionController) {
+					Expression = SynthTable.Expr2Pcnt[midiEvent.Value];
+			
+				} else if (midiEvent.Controller == MidiControllerType.Pan) {
+					Pan = SynthTable.Expr2Pcnt[midiEvent.Value] * 2 - 1;
+
+				} else if (midiEvent.Controller == MidiControllerType.Sustain) {
+					if (Sustain && midiEvent.Value < 0x40) {
+						// Sustain pedal off;
+						while (SustainedVoices.Count > 0)
+							SustainedVoices.Dequeue().NoteOff(0, 0);
+					}
+
+					Sustain = midiEvent.Value >= 0x40;
 				}
 			}
+		}
+
+		public void SetLevel (double level) {
+			Gain = SynthTable.Deci2Gain(level);
 		}
 	}
 }

@@ -1,24 +1,23 @@
-﻿using System;
-
-namespace Midif.Synth {
-	public class TriangleGenerator : MidiComponent {
-		public int Transpose;
-		public int Tune;
-
-		double phaseStep;
-		double phase;
-
-
+﻿namespace Midif.Synth {
+	public sealed class TriangleGenerator : MidiGenerator {
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			if (!IsOn) phase = 3;
+			phaseStep = 4 * CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
 
-			phaseStep = 4 * SynthTable.Note2Freq[note + Transpose] * SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * sampleRateRecip;
-			phase = 3;
+			IsOn = true;
 		}
 
-		public override double Render () {
-			if ((phase += phaseStep) > 4) phase %= 4;
-			return Math.Abs(phase - 2) - 1;
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+
+				if ((phase += phaseStep) > 4)
+					phase %= 4;
+				
+				return RenderCache = System.Math.Abs(phase - 2) - 1;
+			}
+
+			return RenderCache;
 		}
 	}
 }

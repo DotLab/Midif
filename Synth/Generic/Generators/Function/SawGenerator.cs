@@ -1,22 +1,23 @@
 ﻿namespace Midif.Synth {
-	public class SawGenerator : MidiComponent {
-		public int Transpose;
-		public int Tune;
-
-		double phaseStep;
-		double phase;
-
-
+	public sealed class SawGenerator : MidiGenerator {
 		public override void NoteOn (byte note, byte velocity) {
-			base.NoteOn(note, velocity);
+			if (!IsOn) phase = 0;
+			phaseStep = CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
 
-			phaseStep = SynthTable.Note2Freq[note + Transpose] * SynthTable.Cent2Pitc[Tune + SynthTable.Cent2PitcShif] * sampleRateRecip;
-			phase = 0;
+			IsOn = true;
 		}
 
-		public override double Render () {
-			if ((phase += phaseStep) > 1) phase %= 1;
-			return 2 * (phase - (int)(phase + 0.5));
+		public override double Render (bool flag) {
+			if (flag ^ RenderFlag) {
+				RenderFlag = flag;
+
+				if ((phase += phaseStep) > 1)
+					phase %= 1;
+
+				return RenderCache = 2 * (phase - (int)(phase + 0.5));
+			}
+
+			return RenderCache;
 		}
 	}
 }
