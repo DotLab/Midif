@@ -8,8 +8,11 @@ namespace Midif.Synth {
 	[System.Serializable]
 	public class MidiSynth {
 		public MidiVoiceDelegate VoiceBuilder;
-		public List<MidiVoice> Voices = new List<MidiVoice>();
+
 		public bool DynamicPolyphony = true;
+		public bool FlushOldestVoice = true;
+
+		public List<MidiVoice> Voices = new List<MidiVoice>();
 		public int Count;
 
 		public Queue<MidiVoice> SustainedVoices = new Queue<MidiVoice>();
@@ -24,6 +27,9 @@ namespace Midif.Synth {
 		public double Width = 0.5;
 
 		public bool Sustain;
+
+		public byte Velocity;
+		public bool VelocityIsPercentage;
 
 
 		/// <summary>
@@ -55,13 +61,13 @@ namespace Midif.Synth {
 			if (midiEvent.Type == MidiEventType.Controller) {
 				
 				if (midiEvent.Controller == MidiControllerType.MainVolume) {
-					Gain = SynthTable.Velc2Gain[midiEvent.Value];
+//					Gain = SynthTable.Velc2Gain[midiEvent.Value];
 
 				} else if (midiEvent.Controller == MidiControllerType.ExpressionController) {
-					Expression = SynthTable.Expr2Pcnt[midiEvent.Value];
+					Expression = SynthTable.Pcnt2Gain[midiEvent.Value];
 			
 				} else if (midiEvent.Controller == MidiControllerType.Pan) {
-					Pan = SynthTable.Expr2Pcnt[midiEvent.Value] * 2 - 1;
+//					Pan = SynthTable.Expr2Pcnt[midiEvent.Value] * 2 - 1;
 
 				} else if (midiEvent.Controller == MidiControllerType.Sustain) {
 					if (Sustain && midiEvent.Value < 0x40) {

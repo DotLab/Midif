@@ -6,106 +6,109 @@
 		public double Level;
 		protected double gain;
 
-		public int Start;
-		public int End;
+		/// <summary>
+		/// Define the start and end of the Samples, inclusive.
+		/// </summary>
+		public int Start, End;
 		protected int duration;
 
-		public double[] Samples;
+		/// <summary>
+		/// Input Samples' sample rate.
+		/// </summary>
 		public double Rate;
+		public double[] Samples;
+
 
 		/// <summary>
 		/// Resample the specified samples, from oldRate to newRate.
 		/// See https://github.com/tng2903/CSUnitySynth/blob/master/Assets/Extensions/CSSynth/Wave/WaveHelper.cs
 		/// </summary>
 		/// <param name="samples">Samples.</param>
-		/// <param name="oldRate">Old sample rate.</param>
-		/// <param name="newRate">New sample rate.</param>
-		public static double[] Resample (double[] samples, int oldRate, int newRate) {
-			if (newRate == oldRate) return samples;
+		/// <param name="sampleRate">Sample rate.</param>
+		/// <param name="targetSampleRate">Target sample rate.</param>
+		public static double[] Resample (double[] samples, int sampleRate, int targetSampleRate) {
+			if (targetSampleRate == sampleRate)
+				return samples;
 
-			int a = newRate, b = oldRate, r;
-			// Find the biggest factor between the rates
-			while (b != 0) {
-				r = a % b;
-				a = b;
-				b = r;
-			}
-			oldRate = oldRate / a;
-			newRate = newRate / a;
+			double max = 0;
+			for (int i = 0; i < samples.Length; i++)
+				if (samples[i] > max)
+					System.Math.Abs(max = samples[i]);
 
-			if (newRate < oldRate) { 
-				// Downsample
-				if (oldRate % newRate == 0) { 
-					// Simple Downsample
-					BiquadFilter.Process(
-						samples, newRate * a, 
-						BiquadFilter.FilterType.LowPass, (newRate * a) / 2.0, 1);
-					samples = Downsample(samples, oldRate / newRate);
-				} else { 
-					// Upsample then Downsample
-					samples = Upsample(samples, newRate);
-					// Filter
-					BiquadFilter.Process(
-						samples, newRate * a, 
-						BiquadFilter.FilterType.LowPass, (newRate * a) / 2.0, 1);
-					// Downsample
-					samples = Downsample(samples, oldRate);
-				}
-			} else if (newRate > oldRate) { 
-				// Upsample
-				if (newRate % oldRate == 0) { 
-					// Simple Upsample
-					samples = Upsample(samples, newRate / oldRate);
-					BiquadFilter.Process(
-						samples, newRate * a, 
-						BiquadFilter.FilterType.LowPass, (oldRate * a) / 2.0, 1);
-				} else { 
-					// Upsample then Downsample
-					samples = Upsample(samples, newRate);
-					// Filter
-					BiquadFilter.Process(
-						samples, newRate * a, 
-						BiquadFilter.FilterType.LowPass, (oldRate * a) / 2.0, 1);
-					// Downsample
-					samples = Downsample(samples, oldRate);
-				}
+			// Simple Decimation
+			if (targetSampleRate < sampleRate && sampleRate % targetSampleRate == 0)
+				samples = Decimation(samples, sampleRate, targetSampleRate);
+			else if (sampleRate < targetSampleRate && targetSampleRate % sampleRate == 0)
+				samples = Interpolation(samples, sampleRate, targetSampleRate);
+			else {			// Interpolation then Decimation
+				var gcd = Mathf.Gcd(sampleRate, targetSampleRate);
+				var tempSampleRate = sampleRate * (targetSampleRate / gcd);
+				samples = Interpolation(samples, sampleRate, tempSampleRate);
+				samples = Decimation(samples, tempSampleRate, targetSampleRate);
 			}
+
+			double newMax = 0;
+			for (int i = 0; i < samples.Length; i++)
+				if (samples[i] > newMax)
+					System.Math.Abs(newMax = samples[i]);
+
+			double ratio = max / newMax;
+			for (int i = 0; i < samples.Length; i++)
+				samples[i] *= ratio;
 
 			return samples;
 		}
 
 		/// <summary>
-		/// Downsample by skipping samples.
+		/// Decimation.
 		/// </summary>
 		/// <param name="samples">Samples.</param>
-		/// <param name="factor">Factor.</param>
-		static double[] Downsample (double[] samples, int factor) {
-			if (factor == 1) return samples;
+		/// <param name="sampleRate">Sample rate.</param>
+		/// <param name="targetSampleRate">Target sample rate.</param>
+		static double[] Decimation (double[] samples, int sampleRate, int targetSampleRate) {
+			if (sampleRate == targetSampleRate)
+				return samples;
 
-			int newLength = (int)(samples.Length * (1.0 / factor));
+			// Filter
+			BiquadFilter.Process(
+				samples, sampleRate, 
+				BiquadFilter.FilterType.LowPass, targetSampleRate / 4, 1);
+
+			// Downsample
+			var ratio = (double)targetSampleRate / sampleRate;
+			int newLength = (int)(samples.Length * ratio + 0.5);
 			var newSamples = new double[newLength];
 
+			ratio = (double)sampleRate / targetSampleRate;
 			for (int i = 0; i < newLength; i++)
-				newSamples[i] = samples[i * factor];
+				newSamples[i] = samples[(int)(i * ratio + 0.5)];
 
 			return newSamples;
 		}
 
 		/// <summary>
-		/// Upsample by padding zeros.
-		/// Need low pass filtering.
+		/// Interpolation.
 		/// </summary>
 		/// <param name="samples">Samples.</param>
-		/// <param name="factor">Factor.</param>
-		static double[] Upsample (double[] samples, int factor) {
-			if (factor == 1) return samples;
+		/// <param name="sampleRate">Sample rate.</param>
+		/// <param name="targetSampleRate">Target sample rate.</param>
+		static double[] Interpolation (double[] samples, int sampleRate, int targetSampleRate) {
+			if (sampleRate == targetSampleRate)
+				return samples;
 
+			// Upsample
+			var ratio = targetSampleRate / sampleRate;
 			int oldLength = samples.Length;
-			var newSamples = new double[oldLength * factor];
+			var newSamples = new double[oldLength * ratio];
 
 			// Since the array is already all zero, just need to inseart the sample.
 			for (int i = 0; i < oldLength; i++)
-				newSamples[i * factor] = samples[i];
+				newSamples[i * ratio] = samples[i];
+
+			// Filter
+			BiquadFilter.Process(
+				newSamples, targetSampleRate, 
+				BiquadFilter.FilterType.LowPass, sampleRate / 4, 1);
 
 			return newSamples;
 		}

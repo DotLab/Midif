@@ -3,7 +3,7 @@
 		/// <summary>
 		/// Whether to play the sample a fixed number of times, ignoring NoteOff and any loop information.
 		/// </summary>
-		public bool IgnoreNoteOff = true;
+		public bool IgnoreNoteOff;
 
 		public int Count;
 		int count = int.MaxValue;
@@ -43,10 +43,12 @@
 			if (flag ^ RenderFlag) {
 				RenderFlag = flag;
 
+				phase += phaseStep;
+
 				if (count >= Count)
 					return RenderCache = 0;
 
-				if ((phase += phaseStep) > duration) {
+				if (phase > duration) {
 					phase = Start + ((phase - Start) % duration);
 					count++;
 				}

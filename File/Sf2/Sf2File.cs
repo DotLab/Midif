@@ -68,6 +68,12 @@ namespace Midif.File.Sf2 {
 				for (int i = 0; i < SampleData.Length; i++)
 					Samples[i] = (double)(SampleData[i] << 8 | SampleData24[i]) / 0x7FFFFF;
 
+			// Build Samples for each SampleHeader;
+			foreach (var header in SampleHeaders) {
+				header.Samples = new double[header.End - header.Start + 1];
+				System.Array.Copy(Samples, header.Start, header.Samples, 0, header.Samples.Length);
+			}
+
 			// The last instrument is EOI.
 			Instruments = new Sf2Instrument[InstrumentHeaders.Length - 1];
 			for (int instNdx = 0; instNdx < InstrumentHeaders.Length - 1; instNdx++) {
@@ -75,15 +81,13 @@ namespace Midif.File.Sf2 {
 				var inst = new Sf2Instrument(InstrumentHeaders[instNdx].InstName);
 				Sf2Zone globalZone = null;
 
-				for (
-					int bagNdx = InstrumentHeaders[instNdx].InstBagNdx; 
+				for (int bagNdx = InstrumentHeaders[instNdx].InstBagNdx; 
 					bagNdx < InstrumentHeaders[instNdx + 1].InstBagNdx;
 					bagNdx++) {
 //					DebugConsole.WriteLine("\t" + InstrumentBags[bagNdx]);
 					var zone = new Sf2Zone();
 
-					for (
-						int genNdx = InstrumentBags[bagNdx].GenNdx; 
+					for (int genNdx = InstrumentBags[bagNdx].GenNdx; 
 						genNdx < InstrumentBags[bagNdx + 1].GenNdx; 
 						genNdx++) {
 //						DebugConsole.WriteLine("\t\t" + InstrumentGenerators[genNdx]);

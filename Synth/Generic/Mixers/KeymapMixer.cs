@@ -16,9 +16,9 @@
 			IsOn = true;
 			Note = note;
 
-			if (Sources[note] == null)
-				disabled = true;
-			else
+			disabled = Sources[note] == null;
+
+			if (!disabled)
 				Sources[note].NoteOn(note, velocity);
 		}
 
@@ -26,7 +26,7 @@
 			IsOn = false;
 
 			if (!disabled)
-				Sources[note].NoteOff(note, velocity);
+				Sources[Note].NoteOff(Note, velocity);
 		}
 
 		public override bool IsFinished () {

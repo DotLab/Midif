@@ -294,7 +294,7 @@ namespace Midif.File.Sfz {
 		/// <summary>
 		/// Amplifier EG attack time, in seconds.
 		/// </summary>
-		public float ampegAttack = 0;
+		public float ampegAttack;
 		/// <summary>
 		/// Amplifier EG hold time, in seconds. During the hold stage, EG output will remain at its maximum value.
 		/// </summary>
@@ -310,7 +310,7 @@ namespace Midif.File.Sfz {
 		/// <summary>
 		/// Amplifier EG release time (after note release), in seconds.
 		/// </summary>
-		public float ampegRelease = 0;
+		public float ampegRelease;
 
 		/// <summary>
 		/// The time before the Amplifier LFO starts oscillating, in seconds.

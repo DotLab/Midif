@@ -24,7 +24,7 @@ namespace Midif.Synth {
 		}
 
 		public override void NoteOn (byte note, byte velocity) {
-			if (!IsOn) z1 = 0;
+//			if (!IsOn) z1 = 0;
 
 			IsOn = true;
 		

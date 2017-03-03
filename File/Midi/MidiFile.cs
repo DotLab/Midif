@@ -27,9 +27,9 @@ namespace Midif {
 
 		public void Rebase () {
 			int cdTick = 0;
-			foreach (var trackEvent in MidiEvents) cdTick = Gcd(cdTick, trackEvent.Tick);
+			foreach (var trackEvent in MidiEvents) cdTick = Mathf.Gcd(cdTick, trackEvent.Tick);
 			// foreach (var trackEvent in SysExEvents) cdTick = gcd(cdTick, trackEvent.Tick);
-			foreach (var trackEvent in MetaEvents) cdTick = Gcd(cdTick, trackEvent.Tick);
+			foreach (var trackEvent in MetaEvents) cdTick = Mathf.Gcd(cdTick, trackEvent.Tick);
 
 			if (cdTick == 1) return;
 //			DebugConsole.Log(string.Format("Rebase TicksPerBeat from {0} to {1}.", TicksPerBeat, TicksPerBeat / cdTick));
@@ -39,16 +39,6 @@ namespace Midif {
 			foreach (var trackEvent in MidiEvents) trackEvent.Tick /= cdTick;
 			foreach (var trackEvent in SysExEvents) trackEvent.Tick /= cdTick;
 			foreach (var trackEvent in MetaEvents) trackEvent.Tick /= cdTick;
-		}
-
-		static int Gcd (int a, int b) {
-			while (b > 0) {
-				int temp = b;
-				b = a % b; // % is remainder
-				a = temp;
-			}
-
-			return a;
 		}
 
 		public void Trim () {

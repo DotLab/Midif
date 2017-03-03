@@ -15,7 +15,7 @@ namespace Midif.Synth {
 		public static readonly double[] Cent2Pitc;
 
 		public static readonly double[] Velc2Gain;
-		public static readonly double[] Expr2Pcnt;
+		public static readonly double[] Pcnt2Gain;
 
 		static SynthTable () {
 			Note2Freq = new double[Note2FreqLeng];
@@ -31,10 +31,10 @@ namespace Midif.Synth {
 				Cent2Pitc[i] = Math.Pow(2, (i - Cent2PitcShif) / 1200.0);
 
 			Velc2Gain = new double[Velc2GainLeng];
-			Expr2Pcnt = new double[Velc2GainLeng];
+			Pcnt2Gain = new double[Velc2GainLeng];
 			for (int i = 0; i < Velc2GainLeng; i++) {
 				Velc2Gain[i] = Deci2Gain(40.0 * Math.Log10((double)i / 0x7F));
-				Expr2Pcnt[i] = i / 127.0;
+				Pcnt2Gain[i] = i / 127.0;
 			}
 		}
 

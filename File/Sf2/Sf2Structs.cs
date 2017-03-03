@@ -158,6 +158,9 @@ namespace Midif.File.Sf2 {
 		// SFSampleLink sfSampleType;
 		public SampleLinkType SampleLinkType;
 
+		public double[] Samples;
+		public int Scale = 1;
+
 
 		public SampleHeader (Stream stream) {
 			SampleName = StreamHelper.ReadString(stream, 20);

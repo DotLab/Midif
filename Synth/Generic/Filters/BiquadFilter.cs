@@ -30,7 +30,7 @@ namespace Midif.Synth {
 
 
 		public override void NoteOn (byte note, byte velocity) {
-			if (!IsOn) z1 = z2 = 0;
+//			if (!IsOn) z1 = z2 = 0;
 
 			IsOn = true;
 
@@ -67,7 +67,7 @@ namespace Midif.Synth {
 
 		public static void Process (
 			double[] samples, double sampleRate, 
-			FilterType type, double fc, double q = 0.707, double peakGain = 0) {
+			FilterType type, double fc, double q = 0.7071, double peakGain = 0) {
 
 			double a0, a1, a2, b1, b2;
 			double z1 = 0, z2 = 0;
@@ -75,14 +75,13 @@ namespace Midif.Synth {
 			CalcCoeffs(sampleRate, type, fc, q, peakGain, out a0, out a1, out a2, out b1, out b2);
 
 			int length = samples.Length;
-			for (int i = 0; i < length; i++) {
-				var input = samples[i];
+			for (int i = 0; i < length + length / 2; i++) {
+				var input = samples[i % length];
 				var output = input * a0 + z1;
-
 				z1 = input * a1 + z2 - b1 * output;
 				z2 = input * a2 - b2 * output;
 
-				samples[i] = output;
+				samples[i % length] = output;
 			}
 		}
 

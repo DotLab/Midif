@@ -31,6 +31,7 @@
 		public byte[] WaveData;
 
 		public double[][] Samples;
+		public int Scale = 1;
 
 		public WaveFileFormat Format {
 			get { return (WaveFileFormat)FormatTag; }

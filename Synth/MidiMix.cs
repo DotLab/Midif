@@ -23,7 +23,7 @@ namespace Midif.Synth {
 			Count = Voices.Count;
 		}
 
-		public void NoteOn (MidiTrack track, MidiChannel channel, byte note, byte velocity) {
+		public void NoteOn (MidiTrack track, MidiChannel channel, byte note, byte velocity, MidiEvent midiEvent = null) {
 			foreach (var synth in Synths) {
 				if ((track & synth.Track) != track || (channel & synth.Channel) != channel)
 					continue;
@@ -38,9 +38,14 @@ namespace Midif.Synth {
 						break;
 					}
 
-					if ((target == null && synth.Voices[i].Note < note) ||
-					    (target != null && synth.Voices[i].Note < target.Note))
-						target = synth.Voices[i];
+					if (synth.FlushOldestVoice) {
+						if (target == null || synth.Voices[i].Event.Tick < target.Event.Tick)
+							target = synth.Voices[i];
+					} else {
+						if ((target == null && synth.Voices[i].Note < note) ||
+						    (target != null && synth.Voices[i].Note < target.Note))
+							target = synth.Voices[i];
+					}
 				}
 
 				if (!synth.DynamicPolyphony && target == null)
@@ -60,11 +65,20 @@ namespace Midif.Synth {
 					Count++;
 				}
 
-				// target.Pan = Pan + Width * ((note % 12) - 6.0) / 6.0;
-				target.Pan = synth.Pan + synth.Width * (note - 69.0) / 64.0;
-				target.LeftGain = synth.Gain * synth.Expression * (0.5 - target.Pan * 0.5) * SynthTable.Velc2Gain[velocity];
-				target.RightGain = synth.Gain * synth.Expression * (0.5 + target.Pan * 0.5) * SynthTable.Velc2Gain[velocity];
+				target.Pan = synth.Pan + synth.Width * ((note % 12) - 6.0) / 6.0;
+//				target.Pan = synth.Pan + synth.Width * (note - 69.0) / 64.0;
 
+				if (synth.Velocity != 0) velocity = synth.Velocity;
+				if (synth.VelocityIsPercentage) {
+					target.LeftGain = synth.Gain * synth.Expression * (0.5 - target.Pan * 0.5) * SynthTable.Pcnt2Gain[velocity];
+					target.RightGain = synth.Gain * synth.Expression * (0.5 + target.Pan * 0.5) * SynthTable.Pcnt2Gain[velocity];
+				} else {
+					target.LeftGain = synth.Gain * synth.Expression * (0.5 - target.Pan * 0.5) * SynthTable.Velc2Gain[velocity];
+					target.RightGain = synth.Gain * synth.Expression * (0.5 + target.Pan * 0.5) * SynthTable.Velc2Gain[velocity];
+				}
+
+
+				target.Event = midiEvent;
 				target.NoteOn(note, velocity);
 			}
 
@@ -152,7 +166,7 @@ namespace Midif.Synth {
 
 		public void MidiEventHandler (MidiEvent midiEvent) {
 			if (midiEvent.Type == MidiEventType.NoteOn)
-				NoteOn(midiEvent.MidiTrack, midiEvent.MidiChannel, midiEvent.Note, midiEvent.Velocity);
+				NoteOn(midiEvent.MidiTrack, midiEvent.MidiChannel, midiEvent.Note, midiEvent.Velocity, midiEvent);
 			else if (midiEvent.Type == MidiEventType.NoteOff)
 				NoteOff(midiEvent.MidiTrack, midiEvent.MidiChannel, midiEvent.Note, midiEvent.Velocity);
 			else

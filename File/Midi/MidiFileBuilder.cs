@@ -7,7 +7,7 @@ using Midif.File;
 namespace Midif {
 	public static class MidiFileBuilder {
 		// MidiFile uses Big Endian;
-		static class StreamHelper {
+		public static class StreamHelper {
 			const int Int16Length = 2;
 			const int Int32Length = 4;
 
@@ -45,14 +45,13 @@ namespace Midif {
 				return (int)BitConverter.ToUInt32(bytes, 0);
 			}
 
-			public static int ReadVlv (Stream stream) {
-				int b, value = 0;
+			public static uint ReadVlv (Stream stream) {
+				byte b;
+				uint value = 0;
 
 				do {
-					b = stream.ReadByte();
-
-					value = value << 7;
-					value += b & 0x7F;
+					b = (byte)stream.ReadByte();
+					value = (value << 7) | (uint)(b & 0x7F);
 				} while ((b & 0x80) != 0) ;
 
 				return value;
@@ -129,7 +128,7 @@ namespace Midif {
 			byte runningStatus = 0x00;
 
 			while (stream.Position < stream.Length) {
-				tick += StreamHelper.ReadVlv(stream);
+				tick += (int)StreamHelper.ReadVlv(stream);
 				var statusByte = (byte)stream.ReadByte();
 
 				if (statusByte < 0xF0) { // Midi events (status bytes 0x8n - 0xEn)
@@ -169,7 +168,7 @@ namespace Midif {
 					runningStatus = 0x00;
 
 					var sysExEvent = 
-						new SysExEvent(track, tick, StreamHelper.ReadVlv(stream));
+						new SysExEvent(track, tick, (int)StreamHelper.ReadVlv(stream));
 					stream.Read(sysExEvent.Bytes, 0, sysExEvent.Length);
 
 					file.SysExEvents.Add(sysExEvent);
@@ -177,7 +176,7 @@ namespace Midif {
 					runningStatus = 0x00;
 
 					var metaEvent = 
-						new MetaEvent(track, tick, (byte)stream.ReadByte(), StreamHelper.ReadVlv(stream));
+						new MetaEvent(track, tick, (byte)stream.ReadByte(), (int)StreamHelper.ReadVlv(stream));
 					stream.Read(metaEvent.Data, 0, metaEvent.Length);
 
 					file.MetaEvents.Add(metaEvent);

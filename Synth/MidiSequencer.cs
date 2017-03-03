@@ -112,7 +112,8 @@
 				frame = true;
 				OnProcessMidiEvent(file.MidiEvents[midiIndex++]);
 			}
-			if (frame) OnEndOfFrameEvent();
+
+			if (frame && OnEndOfFrameEvent != null) OnEndOfFrameEvent();
 		}
 
 
