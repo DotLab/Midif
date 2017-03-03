@@ -10,7 +10,7 @@
 		public MidiControllerType MidiSource;
 
 		public ModulatorType (System.IO.Stream stream) {
-			var data = StreamHelper.ReadUInt16(stream);
+			var data = StreamHelperLe.ReadUInt16(stream);
 
 			Type = (SourceType)(data >> 10);
 			Polarity = (SourcePolarityType)((data >> 9) & 0x01);

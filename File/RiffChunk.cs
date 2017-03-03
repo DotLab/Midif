@@ -12,9 +12,9 @@ namespace Midif.File {
 
 
 		public RiffChunk (Stream stream) {
-			Id = StreamHelper.ReadString(stream, 4);
+			Id = StreamHelperLe.ReadString(stream, 4);
 
-			Size = (int)StreamHelper.ReadUInt32(stream);
+			Size = (int)StreamHelperLe.ReadUInt32(stream);
 			Pad = Size & 0x1;
 
 			Data = new byte[Size];

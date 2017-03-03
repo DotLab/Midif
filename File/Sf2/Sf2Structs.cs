@@ -17,8 +17,8 @@ namespace Midif.File.Sf2 {
 
 
 		public Bag (Stream stream) {
-			GenNdx = StreamHelper.ReadUInt16(stream);
-			ModNdx = StreamHelper.ReadUInt16(stream);
+			GenNdx = StreamHelperLe.ReadUInt16(stream);
+			ModNdx = StreamHelperLe.ReadUInt16(stream);
 		}
 
 		public override string ToString () {
@@ -44,10 +44,10 @@ namespace Midif.File.Sf2 {
 
 		public Modulator (Stream stream) {
 			ModSrc = new ModulatorType(stream);
-			ModDest = (GeneratorType)StreamHelper.ReadUInt16(stream);
-			ModAmount = StreamHelper.ReadInt16(stream);
+			ModDest = (GeneratorType)StreamHelperLe.ReadUInt16(stream);
+			ModAmount = StreamHelperLe.ReadInt16(stream);
 			ModAmtSrc = new ModulatorType(stream);
-			ModTrans = (TransformType)StreamHelper.ReadUInt16(stream);
+			ModTrans = (TransformType)StreamHelperLe.ReadUInt16(stream);
 		}
 	}
 
@@ -72,7 +72,7 @@ namespace Midif.File.Sf2 {
 
 
 		public Generator (Stream stream) {
-			Gen = (GeneratorType)StreamHelper.ReadUInt16(stream);
+			Gen = (GeneratorType)StreamHelperLe.ReadUInt16(stream);
 
 			AmoutLo = (byte)stream.ReadByte();
 			AmoutHi = (byte)stream.ReadByte();
@@ -104,14 +104,14 @@ namespace Midif.File.Sf2 {
 
 
 		public PresetHeader (Stream stream) {
-			PresetName = StreamHelper.ReadString(stream, 20);
-			Preset = StreamHelper.ReadUInt16(stream);
-			Bank = StreamHelper.ReadUInt16(stream);
-			PresetBagIndex = StreamHelper.ReadUInt16(stream);
+			PresetName = StreamHelperLe.ReadString(stream, 20);
+			Preset = StreamHelperLe.ReadUInt16(stream);
+			Bank = StreamHelperLe.ReadUInt16(stream);
+			PresetBagIndex = StreamHelperLe.ReadUInt16(stream);
 
-			Library = StreamHelper.ReadUInt32(stream);
-			Genre = StreamHelper.ReadUInt32(stream);
-			Morphology = StreamHelper.ReadUInt32(stream);
+			Library = StreamHelperLe.ReadUInt32(stream);
+			Genre = StreamHelperLe.ReadUInt32(stream);
+			Morphology = StreamHelperLe.ReadUInt32(stream);
 		}
 	}
 
@@ -125,8 +125,8 @@ namespace Midif.File.Sf2 {
 
 
 		public InstrumentHeader (Stream stream) {
-			InstName = StreamHelper.ReadString(stream, 20);
-			InstBagNdx = StreamHelper.ReadUInt16(stream);
+			InstName = StreamHelperLe.ReadString(stream, 20);
+			InstBagNdx = StreamHelperLe.ReadUInt16(stream);
 		}
 
 		public override string ToString () {
@@ -163,16 +163,16 @@ namespace Midif.File.Sf2 {
 
 
 		public SampleHeader (Stream stream) {
-			SampleName = StreamHelper.ReadString(stream, 20);
-			Start = StreamHelper.ReadUInt32(stream);
-			End = StreamHelper.ReadUInt32(stream);
-			Startloop = StreamHelper.ReadUInt32(stream);
-			Endloop = StreamHelper.ReadUInt32(stream);
-			SampleRate = StreamHelper.ReadUInt32(stream);
+			SampleName = StreamHelperLe.ReadString(stream, 20);
+			Start = StreamHelperLe.ReadUInt32(stream);
+			End = StreamHelperLe.ReadUInt32(stream);
+			Startloop = StreamHelperLe.ReadUInt32(stream);
+			Endloop = StreamHelperLe.ReadUInt32(stream);
+			SampleRate = StreamHelperLe.ReadUInt32(stream);
 			OriginalKey = (byte)stream.ReadByte();
 			Correction = (sbyte)stream.ReadByte();
-			SampleLink = StreamHelper.ReadUInt16(stream);
-			SampleLinkType = (SampleLinkType)StreamHelper.ReadUInt16(stream);
+			SampleLink = StreamHelperLe.ReadUInt16(stream);
+			SampleLinkType = (SampleLinkType)StreamHelperLe.ReadUInt16(stream);
 		}
 	}
 
