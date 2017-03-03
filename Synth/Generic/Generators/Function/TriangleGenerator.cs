@@ -11,8 +11,8 @@
 			if (flag ^ RenderFlag) {
 				RenderFlag = flag;
 
-				if ((phase += phaseStep) > 4)
-					phase %= 4;
+				phase += phaseStep;
+				if (phase > 4) phase %= 4;
 				
 				return RenderCache = System.Math.Abs(phase - 2) - 1;
 			}

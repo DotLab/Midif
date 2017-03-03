@@ -39,7 +39,7 @@ namespace Midif.Synth {
 		}
 
 		public static double Deci2Gain (double dB) {
-			return Math.Pow(10.0, (dB / 20.0));
+			return Math.Pow(20.0, (dB / 20.0));
 		}
 
 		public static int Clmp2Note (int note) {

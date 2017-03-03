@@ -10,6 +10,7 @@
 		public override double Render (bool flag) {
 			if (flag ^ RenderFlag) {
 				RenderFlag = flag;
+
 				return RenderCache = System.Math.Sin(phase += phaseStep);
 			}
 

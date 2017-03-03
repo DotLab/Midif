@@ -11,8 +11,8 @@
 			if (flag ^ RenderFlag) {
 				RenderFlag = flag;
 
-				if ((phase += phaseStep) > 1)
-					phase %= 1;
+				phase += phaseStep;
+				if (phase > 1) phase %= 1;
 
 				return RenderCache = 2 * (phase - (int)(phase + 0.5));
 			}

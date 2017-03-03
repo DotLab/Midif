@@ -146,6 +146,13 @@ namespace Midif.File.Dx7 {
 				oscMode = tmp & 1;
 				freqCoarse = tmp >> 1;
 				freqFine = stream.ReadByte();
+
+				if (oscMode == 0) {
+					var coarse = freqCoarse == 0 ? 0.5 : freqCoarse; // freqCoarse of 0 is used for ratio of 0.5
+					freqRatio = coarse * (1 + freqFine / 100);
+				} else {
+					freqFixed = Math.Pow(10, freqCoarse % 4) * (1 + (freqFine / 99) * 8.772);
+				}
 			}
 		}
 	}

@@ -77,6 +77,7 @@ namespace Midif.Synth {
 					}
 
 					Sustain = midiEvent.Value >= 0x40;
+//					DebugConsole.WriteLine("Sustain: " + (Sustain ? "On" : "Off"));
 				}
 			}
 		}

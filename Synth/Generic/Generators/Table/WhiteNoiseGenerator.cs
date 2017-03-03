@@ -27,6 +27,7 @@ namespace Midif.Synth {
 		public override double Render (bool flag) {
 			if (flag ^ RenderFlag) {
 				RenderFlag = flag;
+
 				return RenderCache = Table[(int)(phase += phaseStep) & TableMod];
 			}
 
