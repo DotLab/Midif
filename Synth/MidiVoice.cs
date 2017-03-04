@@ -5,7 +5,7 @@
 	/// The outputing point of MidiComponent.
 	/// </summary>
 	[System.Serializable]
-	public sealed class MidiVoice : MidiComponent {
+	public class MidiVoice : MidiComponent {
 		public double Pan;
 		public double LeftGain = 0.5, RightGain = 0.5;
 
@@ -91,13 +91,16 @@
 		public override double Render (bool flag) {
 			if (flag ^ RenderFlag) {
 				RenderFlag = flag;
-				return RenderCache = Component.Render(flag) * LeftGain;
+
+				RenderCache = Component.Render(flag);
+
+				return  RenderCache * LeftGain;
 			}
 
-			return RenderCache;
+			return RenderCache * LeftGain;
 		}
 
-		public double RenderRight (bool flag) {
+		public virtual double RenderRight (bool flag) {
 			if (IsStereo)
 				return RightComponent.Render(flag) * RightGain;
 

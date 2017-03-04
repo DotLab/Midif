@@ -64,13 +64,6 @@ namespace Midif.Synth.Dx7 {
 		public Waveform LfoWaveform;
 
 		/// <summary>
-		/// The Lfo sampling couter.
-		/// Calculate the output once when counter reach 1.
-		/// </summary>
-		double counter;
-		double counterStep;
-
-		/// <summary>
 		/// The Lfo phase.
 		/// phase += phaseStep once when calculating the output.
 		/// </summary>
@@ -83,49 +76,44 @@ namespace Midif.Synth.Dx7 {
 		public override void Init (double sampleRate) {
 			base.Init(sampleRate);
 
-			counterStep = LfoSampleRate / sampleRate;
-			phaseStep = Pi2 * LfoFrequencyTable[LfoSpeed] / LfoSampleRate;
+			phaseStep = Pi2 * LfoFrequencyTable[LfoSpeed] / sampleRate;
+		}
+
+		public override void NoteOn (byte note, byte velocity) {
+			phase = 0;
 		}
 
 		public override double Render (bool flag) {
 			if (flag ^ RenderFlag) {
 				RenderFlag = flag;
 
-				counter += counterStep;
-				if (counter > 1) {
-					counter %= 1;
+				if (LfoWaveform == Waveform.Triangle) {
+					if (phase < Pi) RenderCache = 4 * phase * Pi2Recip - 1;
+					else RenderCache = 3 - 4 * phase * Pi2Recip;
+				} else if (LfoWaveform == Waveform.SawDown)
+					RenderCache = 1 - 2 * phase * Pi2Recip;
+				else if (LfoWaveform == Waveform.SawUp)
+					RenderCache = 2 * phase * Pi2Recip - 1;
+				else if (LfoWaveform == Waveform.Square)
+					RenderCache = (phase < Pi) ? -1 : 1;
+				else if (LfoWaveform == Waveform.Sine)
+					RenderCache = Math.Sin(phase);
+				else if (LfoWaveform == Waveform.SampleHold)
+					RenderCache = sampleHoldRandom;
+				else throw new Exception("Incorrect Waveform");
 
-					RenderLfo();
+				phase += phaseStep;
+				if (phase > Pi2) {
+					phase -= Pi2;
+
+					if (LfoWaveform == Waveform.SampleHold)
+						sampleHoldRandom = 1 - Rand.NextDouble() * 2;
 				}
 
 				return RenderCache;
 			}
 
 			return RenderCache;
-		}
-
-		void RenderLfo () {
-			if (LfoWaveform == Waveform.Triangle) {
-				if (phase < Pi) RenderCache = 4 * phase * Pi2Recip - 1;
-				else RenderCache = 3 - 4 * phase * Pi2Recip;
-			} else if (LfoWaveform == Waveform.SawDown)
-				RenderCache = 1 - 2 * phase * Pi2Recip;
-			else if (LfoWaveform == Waveform.SawUp)
-				RenderCache = 2 * phase * Pi2Recip - 1;
-			else if (LfoWaveform == Waveform.Square)
-				RenderCache = (phase < Pi) ? -1 : 1;
-			else if (LfoWaveform == Waveform.Sine)
-				RenderCache = Math.Sin(phase);
-			else if (LfoWaveform == Waveform.SampleHold)
-				RenderCache = sampleHoldRandom;
-			else throw new Exception("Incorrect Waveform");
-
-			phase += phaseStep;
-			if (phase > Pi2) {
-				sampleHoldRandom = 1 - Rand.NextDouble() * 2;
-
-				phase -= Pi2;
-			}
 		}
 	}
 }

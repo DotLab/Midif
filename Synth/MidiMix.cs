@@ -53,7 +53,7 @@ namespace Midif.Synth {
 
 				// If dynamic polyphony and no finished voice, add a new voice;
 				if (synth.DynamicPolyphony && !targetFinished) {
-					DebugConsole.WriteLine("New!");
+					DebugConsole.WriteLine("New Note:" + Voices.Count + " + 1");
 
 					target = synth.VoiceBuilder();
 					target.Init(SampleRate);
@@ -69,14 +69,19 @@ namespace Midif.Synth {
 //				target.Pan = synth.Pan + synth.Width * (note - 69.0) / 64.0;
 
 				if (synth.Velocity != 0) velocity = synth.Velocity;
-				if (synth.VelocityIsPercentage) {
-					target.LeftGain = synth.Gain * synth.Expression * (0.5 - target.Pan * 0.5) * SynthTable.Pcnt2Gain[velocity];
-					target.RightGain = synth.Gain * synth.Expression * (0.5 + target.Pan * 0.5) * SynthTable.Pcnt2Gain[velocity];
-				} else {
-					target.LeftGain = synth.Gain * synth.Expression * (0.5 - target.Pan * 0.5) * SynthTable.Velc2Gain[velocity];
-					target.RightGain = synth.Gain * synth.Expression * (0.5 + target.Pan * 0.5) * SynthTable.Velc2Gain[velocity];
-				}
 
+				double velcGain = 1;
+				if (!synth.IgnoreVelocity)
+					velcGain = synth.VelocityIsPercentage ? SynthTable.Pcnt2Gain[velocity] : SynthTable.Velc2Gain[velocity];
+
+				var ampLeft = System.Math.Cos(System.Math.PI / 2 * (target.Pan + 2) / 4);
+				var ampRight = System.Math.Sin(System.Math.PI / 2 * (target.Pan + 2) / 4);
+
+//				ampLeft = 0.5 - target.Pan * 0.5;
+//				ampRight = 0.5 + target.Pan * 0.5;
+
+				target.LeftGain = synth.Gain * synth.Expression * ampLeft * velcGain;
+				target.RightGain = synth.Gain * synth.Expression * ampRight * velcGain;
 
 				target.Event = midiEvent;
 				target.NoteOn(note, velocity);
