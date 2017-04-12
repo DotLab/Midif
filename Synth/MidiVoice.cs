@@ -14,7 +14,7 @@
 
 		public bool Active, Finished = true, Sustained;
 
-		public MidiEvent Event;
+		public MidiEvent Event = new MidiEvent(0, 0, 0);
 
 		public MidiVoice (MidiComponent component) {
 			IsStereo = false;

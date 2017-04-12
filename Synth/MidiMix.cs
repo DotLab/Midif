@@ -6,7 +6,7 @@ namespace Midif.Synth {
 		public List<MidiSynth> Synths = new List<MidiSynth>();
 		public List<MidiVoice> Voices = new List<MidiVoice>();
 		public int Count, ActiveCount;
-		public bool Panicing;
+		public bool VoiceListDirty;
 
 		public double SampleRate;
 
@@ -24,11 +24,13 @@ namespace Midif.Synth {
 		}
 
 		public void NoteOn (MidiTrack track, MidiChannel channel, byte note, byte velocity, MidiEvent midiEvent = null) {
+			UnityEngine.Debug.Log(midiEvent);
+
 			foreach (var synth in Synths) {
 				if ((track & synth.Track) != track || (channel & synth.Channel) != channel)
 					continue;
 
-				// Try to find a finished voice while keep track of the lowset sounding voice;
+				// Try to find a finished voice while keep track of the lowest sounding voice;
 				bool targetFinished = false;
 				MidiVoice target = null;
 				for (int i = 0; i < synth.Count; i++) {
@@ -38,21 +40,12 @@ namespace Midif.Synth {
 						break;
 					}
 
-					if (synth.FlushOldestVoice) {
-						if (target == null || synth.Voices[i].Event.Tick < target.Event.Tick)
-							target = synth.Voices[i];
-					} else {
-						if ((target == null && synth.Voices[i].Note < note) ||
-						    (target != null && synth.Voices[i].Note < target.Note))
-							target = synth.Voices[i];
-					}
+					if (target == null || synth.Voices[i].Event.Tick < target.Event.Tick) // Choose oldest voice
+						target = synth.Voices[i];
 				}
 
-				if (!synth.DynamicPolyphony && target == null)
-					continue;
-
 				// If dynamic polyphony and no finished voice, add a new voice;
-				if (synth.DynamicPolyphony && !targetFinished) {
+				if (!targetFinished && synth.DynamicPolyphony) {
 					DebugConsole.WriteLine("New Note:" + Voices.Count + " + 1");
 
 					target = synth.VoiceBuilder();
@@ -61,12 +54,12 @@ namespace Midif.Synth {
 					synth.Voices.Add(target);
 					synth.Count++;
 
-					Voices.Add(target);
+					Voices.Insert(0, target);
 					Count++;
 				}
 
-				target.Pan = synth.Pan + synth.Width * ((note % 12) - 6.0) / 6.0;
-//				target.Pan = synth.Pan + synth.Width * (note - 69.0) / 64.0;
+//				target.Pan = synth.Pan + synth.Width * ((note % 12) - 6.0) / 6.0;
+				target.Pan = synth.Pan + synth.Width * (note - 69.0) / 64.0;
 
 				if (synth.Velocity != 0) velocity = synth.Velocity;
 
@@ -87,8 +80,7 @@ namespace Midif.Synth {
 				target.NoteOn(note, velocity);
 			}
 
-			// Move to the end of each frame;
-//			Panic();
+			// No need to sort the voice list;
 		}
 
 		public void NoteOff (MidiTrack track, MidiChannel channel, byte note, byte velocity) {
@@ -98,7 +90,7 @@ namespace Midif.Synth {
 
 				// NoteOff all voices with the target Note;
 				for (int i = 0; i < synth.Count; i++)
-					if (synth.Voices[i].IsOn && !synth.Voices[i].Sustained && synth.Voices[i].Note == note) {
+					if (synth.Voices[i].Note == note && synth.Voices[i].IsOn && !synth.Voices[i].Sustained) {
 						if (synth.Sustain) {
 							synth.Voices[i].Sustained = true;
 							synth.SustainedVoices.Enqueue(synth.Voices[i]);
@@ -109,10 +101,11 @@ namespace Midif.Synth {
 					}
 			}
 
-			Panicing = true;
+			VoiceListDirty = true;
 		}
 
-		public void Panic () {
+		// Move active voices to the front;
+		public void SortVoiceList () {
 			var s = new System.Text.StringBuilder();
 //			s.Append("-----------------------------------------------------------\n");
 //			foreach (var v in Voices) {
@@ -121,24 +114,25 @@ namespace Midif.Synth {
 //			s.Append("-----------------------------------------------------------\n");
 
 			int i = 0, j = Count - 1;
-			while (i < j) {
+			while (true) {
 				while (i < Count && !Voices[i].IsFinished()) i++;
 				while (i < j && Voices[j].IsFinished()) j--;
 
-				if (i < j) {
-					var temp = Voices[i];
-					Voices[i] = Voices[j];
-					Voices[j] = temp;
-				}
+				if (i >= j)
+					break;
+				
+				var temp = Voices[i];
+				Voices[i] = Voices[j];
+				Voices[j] = temp;
 			}
 
 			ActiveCount = i;
 
-			// If all Active voices are IsOn, do not need Panic();
-			Panicing = false;
+			// If all Active voices are IsOn, do not need SortVoiceList() for a while;
+			VoiceListDirty = false;
 			for (i = 0; i < ActiveCount; i++)
 				if (!Voices[i].IsOn) {
-					Panicing = true;
+					VoiceListDirty = true;
 					break;
 				}
 

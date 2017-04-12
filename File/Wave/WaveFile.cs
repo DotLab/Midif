@@ -1,5 +1,7 @@
 ﻿using System.IO;
 
+using StreamHelper = Midif.File.StreamHelperLe;
+
 namespace Midif.File.Wave {
 	public enum WaveFileFormat {
 		MicrosoftPcm = 0x0001,
@@ -16,24 +18,22 @@ namespace Midif.File.Wave {
 	// Only support MicrosoftPcm.
 	[System.Serializable]
 	public class WaveFile {
-		public string WaveId;
 		// A number indicating the WAVE format category of the file.
-		public int FormatTag;
+		public ushort FormatTag;
 		// The number of channels represented in the waveform data, such as 1 for mono or 2 for stereo.
-		public int Channels;
-		public bool SupportStereo;
+		public ushort Channels;
 		// The sampling rate (in samples per second) at which each channel should be played.
-		public int SamplePerSec;
+		public uint SamplePerSec;
 		// The average number of bytes per second at which the waveform data should be transferred.
-		public int AvgBytesPerSec;
+		public uint AvgBytesPerSec;
 		// The block alignment (in bytes) of the waveform data.
-		public int BlockAlign;
+		public ushort BlockAlign;
 		// The number of bits of data used to represent each sample of each channel.
-		public int BitsPerSample;
-		public byte[] WaveData;
+		public ushort BitsPerSample;
 
-		public double[][] Samples;
-		public int Scale = 1;
+		public byte[] Data;
+
+		public double[] Samples;
 
 		public WaveFileFormat Format {
 			get { return (WaveFileFormat)FormatTag; }
@@ -41,14 +41,29 @@ namespace Midif.File.Wave {
 
 		#region Constructor
 
+		public WaveFile (ushort channels, uint samplePerSec, byte bytesPerSample) {
+			Channels = channels;
+			SamplePerSec = samplePerSec;
+			BitsPerSample = (ushort)(bytesPerSample << 3);
+
+			AvgBytesPerSec = bytesPerSample * samplePerSec * channels;
+			BlockAlign = (ushort)(bytesPerSample * channels);
+
+			FormatTag = (ushort)WaveFileFormat.MicrosoftPcm;
+		}
+
 		public WaveFile (Stream stream) {
+			Read(stream);
+		}
+
+		public void Read (Stream stream) {
 			var masterChunk = new RiffChunk(stream);
 			if (masterChunk.Id != "RIFF")
 				throw new FileFormatException("WaveFile.masterChunk.Id", masterChunk.Id, "RIFF");
 
 			// masterChunk
 			using (var masterStream = masterChunk.GetStream()) {
-				WaveId = StreamHelperLe.ReadString(masterStream, 4);
+				var WaveId = StreamHelperLe.ReadString(masterStream, 4);
 				if (WaveId != "WAVE")
 					throw new FileFormatException("WaveFile.WaveId", WaveId, "WAVE");
 
@@ -59,9 +74,8 @@ namespace Midif.File.Wave {
 				using (var formatStream = formatChunk.GetStream()) {
 					FormatTag = StreamHelperLe.ReadUInt16(formatStream);
 					Channels = StreamHelperLe.ReadUInt16(formatStream);
-					SupportStereo = Channels > 1;
-					SamplePerSec = (int)StreamHelperLe.ReadUInt32(formatStream);
-					AvgBytesPerSec = (int)StreamHelperLe.ReadUInt32(formatStream);
+					SamplePerSec = StreamHelperLe.ReadUInt32(formatStream);
+					AvgBytesPerSec = StreamHelperLe.ReadUInt32(formatStream);
 					BlockAlign = StreamHelperLe.ReadUInt16(formatStream);
 					BitsPerSample = StreamHelperLe.ReadUInt16(formatStream);
 				}
@@ -73,7 +87,7 @@ namespace Midif.File.Wave {
 				while (masterStream.Position < masterStream.Length) {
 					var chunk = new RiffChunk(masterStream);
 					if (chunk.Id == "data") {
-						WaveData = chunk.Data;
+						Data = chunk.Data;
 						using (var dataStream = chunk.GetStream()) {
 							BuildSamples(dataStream);
 						}
@@ -81,7 +95,7 @@ namespace Midif.File.Wave {
 					}
 				}
 
-				if (WaveData == null)
+				if (Data == null)
 					throw new FileFormatException("WaveFile.WaveData", "null", "byte[]");
 			}
 		}
@@ -89,38 +103,92 @@ namespace Midif.File.Wave {
 		void BuildSamples (Stream stream) {
 			if ((BitsPerSample & 0x7) > 0)
 				throw new FileFormatException("WaveFile.BitsPerSample", BitsPerSample, "[multiple of 8]");
-			var bytesPerSample = BitsPerSample / 8;
-			var sampleCount = WaveData.Length / bytesPerSample / Channels;
+			
+			var bytesPerSample = BitsPerSample >> 3;
+			var sampleLength = Data.Length / bytesPerSample;
 
-			Samples = new double[Channels][];
-			for (int i = 0; i < Channels; i++)
-				Samples[i] = new double[sampleCount];
+			Samples = new double[sampleLength];
 
 			switch (bytesPerSample) {
 			case 1:
-				for (int i = 0; i < sampleCount; i++)
-					for (int j = 0; j < Channels; j++)
-						Samples[j][i] = (double)(stream.ReadByte() - 0x80) / 0x7F;
+				for (int i = 0; i < sampleLength; i++)
+					Samples[i] = (double)stream.ReadByte() / 0x7F - 1.0;
 				break;
 			case 2:
-				for (int i = 0; i < sampleCount; i++)
-					for (int j = 0; j < Channels; j++)
-						Samples[j][i] = (double)(stream.ReadByte() | (sbyte)stream.ReadByte() << 8) / 0x7FFF;
+				for (int i = 0; i < sampleLength; i++)
+					Samples[i] = (double)StreamHelperLe.ReadInt16(stream) / 0x7FFF;
 				break;
 			case 3:
-				for (int i = 0; i < sampleCount; i++)
-					for (int j = 0; j < Channels; j++)
-						Samples[j][i] = (double)(stream.ReadByte() | stream.ReadByte() << 8 | (sbyte)stream.ReadByte() << 16) / 0x7FFFFF;
+				for (int i = 0; i < sampleLength; i++)
+					Samples[i] = (double)StreamHelperLe.ReadInt24(stream) / 0x7FFFFF;
 				break;
 			case 4:
-				for (int i = 0; i < sampleCount; i++)
-					for (int j = 0; j < Channels; j++)
-						Samples[j][i] = (double)(stream.ReadByte() | stream.ReadByte() << 8 | stream.ReadByte() << 16 | (sbyte)stream.ReadByte() << 24) / 0x7FFFFFFF;
+				for (int i = 0; i < sampleLength; i++)
+					Samples[i] = (double)StreamHelperLe.ReadInt32(stream) / 0x7FFFFFFF;
 				break;
 			}
 
 			if (stream.Position < stream.Length)
 				throw new FileFormatException("WaveFile.stream.Position", stream.Position, stream.Length);
+		}
+
+		public void BuildData () {
+			var bytesPerSample = BitsPerSample >> 3;
+			var sampleLength = Samples.Length;
+
+			using (var dataStream = new MemoryStream()) {
+				switch (bytesPerSample) {
+				case 1:
+					for (int i = 0; i < sampleLength; i++)
+						dataStream.WriteByte((byte)System.Math.Round((Samples[i] + 1.0) * 0x7F));
+					break;
+				case 2:
+					for (int i = 0; i < sampleLength; i++)
+						StreamHelperLe.WriteInt16(dataStream, (short)System.Math.Round(Samples[i] * 0x7FFF));
+					break;
+				case 3:
+					for (int i = 0; i < sampleLength; i++)
+						StreamHelperLe.WriteInt24(dataStream, (int)System.Math.Round(Samples[i] * 0x7FFFFF));
+					break;
+				case 4:
+					for (int i = 0; i < sampleLength; i++)
+						StreamHelperLe.WriteInt32(dataStream, (int)System.Math.Round(Samples[i] * 0x7FFFFFFF));
+					break;
+				}
+
+				Data = dataStream.ToArray();
+			}
+		}
+
+		public void Write (Stream stream) {
+			DebugConsole.WriteLine("Write");
+			// masterChunk
+			using (var masterStream = new MemoryStream()) {
+				StreamHelper.WriteString(masterStream, "WAVE");
+
+				// formatChunk
+				using (var formatStream = new MemoryStream()) {
+					StreamHelperLe.WriteUInt16(formatStream, FormatTag);
+					StreamHelperLe.WriteUInt16(formatStream, Channels);
+					StreamHelperLe.WriteUInt32(formatStream, SamplePerSec);
+					StreamHelperLe.WriteUInt32(formatStream, AvgBytesPerSec);
+					StreamHelperLe.WriteUInt16(formatStream, BlockAlign);
+					StreamHelperLe.WriteUInt16(formatStream, BitsPerSample);
+
+					var formatChunk = new RiffChunk("fmt ", formatStream.ToArray());
+					DebugConsole.WriteLine(formatChunk.Size);
+					formatChunk.Write(masterStream);
+				}
+
+				// dataChunk
+				var dataChunk = new RiffChunk("data", Data);
+				DebugConsole.WriteLine(dataChunk.Size);
+				dataChunk.Write(masterStream);
+
+				var masterChunk = new RiffChunk("RIFF", masterStream.ToArray());
+				DebugConsole.WriteLine(masterChunk.Size);
+				masterChunk.Write(stream);
+			}
 		}
 
 		#endregion

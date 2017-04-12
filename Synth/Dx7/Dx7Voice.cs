@@ -116,10 +116,13 @@
 
 		public override bool IsFinished () {
 			for (int i = 0; i < OutputMix.Length; i++)
-				if (Operators[OutputMix[i]].Enabled && !Operators[OutputMix[i]].IsFinished())
-					return false;
+				if (Operators[OutputMix[i]].Enabled && !Operators[OutputMix[i]].IsFinished()) {
+					Active = true;
+					return Finished = false;
+				}
 
-			return true;
+			Active = false;
+			return Finished = true;
 		}
 
 		public override double Render (bool flag) {

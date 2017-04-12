@@ -16,6 +16,7 @@
 		/// Input Samples' sample rate.
 		/// </summary>
 		public double Rate;
+		public int Channels = 1;
 		public double[] Samples;
 
 

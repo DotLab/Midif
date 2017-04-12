@@ -53,7 +53,7 @@
 					count++;
 				}
 
-				return RenderCache = Samples[(int)(phase)] * gain;
+				return RenderCache = Samples[(int)(phase) * Channels] * gain;
 			}
 
 			return RenderCache;

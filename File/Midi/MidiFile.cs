@@ -36,7 +36,7 @@ namespace Midif {
 			public Chunk (Stream stream) {
 				Id = StreamHelperBe.ReadString(stream, 4);
 
-				Length = StreamHelperBe.ReadUInt32(stream);
+				Length = (int)StreamHelperBe.ReadUInt32(stream);
 //				DebugConsole.WriteLine("Padding " + (Length & 1));
 				Bytes = new byte[Length];
 				stream.Read(Bytes, 0, Length);

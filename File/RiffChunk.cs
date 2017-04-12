@@ -1,27 +1,49 @@
 ﻿using System.IO;
 using System.Text;
 
+using StreamHelper = Midif.File.StreamHelperLe;
+
 namespace Midif.File {
 	class RiffChunk {
 		public string Id;
 
-		public int Size;
-		public int Pad;
+		public uint Size;
+		public byte Pad;
 
 		public byte[] Data;
 
 
-		public RiffChunk (Stream stream) {
-			Id = StreamHelperLe.ReadString(stream, 4);
+		public RiffChunk (string id, byte[] data) {
+			Id = id;
 
-			Size = (int)StreamHelperLe.ReadUInt32(stream);
-			Pad = Size & 0x1;
+			Size = (uint)data.Length;
+			Pad = (byte)(Size & 0x01);
+
+			Data = data;
+		}
+
+		public RiffChunk (Stream stream) {
+			Read(stream);
+		}
+
+		public void Read (Stream stream) {
+			Id = StreamHelper.ReadString(stream, 4);
+
+			Size = StreamHelper.ReadUInt32(stream);
+			Pad = (byte)(Size & 0x1);
 
 			Data = new byte[Size];
-			stream.Read(Data, 0, Size);
+			stream.Read(Data, 0, (int)Size);
 			stream.Position += Pad;
+		}
 
-//			DebugConsole.WriteLine(this);
+		public void Write (Stream stream) {
+			StreamHelper.WriteString(stream, Id);
+
+			StreamHelper.WriteUInt32(stream, Size);
+
+			stream.Write(Data, 0, (int)Size);
+			//if (Pad > 0) stream.WriteByte(0);
 		}
 
 		public Stream GetStream () {

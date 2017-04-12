@@ -10,7 +10,6 @@ namespace Midif.Synth {
 		public MidiVoiceDelegate VoiceBuilder;
 
 		public bool DynamicPolyphony = true;
-		public bool FlushOldestVoice = true;
 
 		public List<MidiVoice> Voices = new List<MidiVoice>();
 		public int Count;
@@ -78,7 +77,7 @@ namespace Midif.Synth {
 					}
 
 					Sustain = midiEvent.Value >= 0x40;
-//					DebugConsole.WriteLine("Sustain: " + (Sustain ? "On" : "Off"));
+					DebugConsole.WriteLine("Sustain: " + (Sustain ? "On" : "Off"));
 				} else if (midiEvent.Controller == MidiControllerType.Modulation) {
 					DebugConsole.WriteLine("Modulation Wheel " + (midiEvent.Value));
 				}
