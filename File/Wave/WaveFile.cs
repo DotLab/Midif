@@ -1,7 +1,5 @@
 ﻿using System.IO;
 
-using StreamHelper = Midif.File.StreamHelperLe;
-
 namespace Midif.File.Wave {
 	public enum WaveFileFormat {
 		MicrosoftPcm = 0x0001,
@@ -164,7 +162,7 @@ namespace Midif.File.Wave {
 			DebugConsole.WriteLine("Write");
 			// masterChunk
 			using (var masterStream = new MemoryStream()) {
-				StreamHelper.WriteString(masterStream, "WAVE");
+				StreamHelperLe.WriteString(masterStream, "WAVE");
 
 				// formatChunk
 				using (var formatStream = new MemoryStream()) {

@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 
 namespace Midif.File {
-	public static class StreamHelperLe {
+	static class StreamHelperLe {
 		static readonly byte[] buffer = new byte[8];
 
 		public static string ReadString (Stream stream, int length) {
@@ -83,7 +83,7 @@ namespace Midif.File {
 		}
 	}
 
-	public static class StreamHelperBe {
+	static class StreamHelperBe {
 		const int Int16Length = 2;
 		const int Int32Length = 4;
 

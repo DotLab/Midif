@@ -1,8 +1,6 @@
 ﻿using System.IO;
 using System.Text;
 
-using StreamHelper = Midif.File.StreamHelperLe;
-
 namespace Midif.File {
 	class RiffChunk {
 		public string Id;
@@ -27,9 +25,9 @@ namespace Midif.File {
 		}
 
 		public void Read (Stream stream) {
-			Id = StreamHelper.ReadString(stream, 4);
+			Id = StreamHelperLe.ReadString(stream, 4);
 
-			Size = StreamHelper.ReadUInt32(stream);
+			Size = StreamHelperLe.ReadUInt32(stream);
 			Pad = (byte)(Size & 0x1);
 
 			Data = new byte[Size];
@@ -38,9 +36,9 @@ namespace Midif.File {
 		}
 
 		public void Write (Stream stream) {
-			StreamHelper.WriteString(stream, Id);
+			StreamHelperLe.WriteString(stream, Id);
 
-			StreamHelper.WriteUInt32(stream, Size);
+			StreamHelperLe.WriteUInt32(stream, Size);
 
 			stream.Write(Data, 0, (int)Size);
 			//if (Pad > 0) stream.WriteByte(0);
