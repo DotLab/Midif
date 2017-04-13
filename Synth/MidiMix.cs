@@ -23,9 +23,7 @@ namespace Midif.Synth {
 			Count = Voices.Count;
 		}
 
-		public void NoteOn (MidiTrack track, MidiChannel channel, byte note, byte velocity, MidiEvent midiEvent = null) {
-			UnityEngine.Debug.Log(midiEvent);
-
+		public void NoteOn (MidiTrack track, MidiChannel channel, byte note, byte velocity, MidiEvent midiEvent) {
 			foreach (var synth in Synths) {
 				if ((track & synth.Track) != track || (channel & synth.Channel) != channel)
 					continue;
@@ -80,7 +78,7 @@ namespace Midif.Synth {
 				target.NoteOn(note, velocity);
 			}
 
-			// No need to sort the voice list;
+			VoiceListDirty = true;
 		}
 
 		public void NoteOff (MidiTrack track, MidiChannel channel, byte note, byte velocity) {
@@ -106,7 +104,7 @@ namespace Midif.Synth {
 
 		// Move active voices to the front;
 		public void SortVoiceList () {
-			var s = new System.Text.StringBuilder();
+//			var s = new System.Text.StringBuilder();
 //			s.Append("-----------------------------------------------------------\n");
 //			foreach (var v in Voices) {
 //				s.Append(v + "\n");
@@ -114,7 +112,7 @@ namespace Midif.Synth {
 //			s.Append("-----------------------------------------------------------\n");
 
 			int i = 0, j = Count - 1;
-			while (true) {
+			while (i < j) {
 				while (i < Count && !Voices[i].IsFinished()) i++;
 				while (i < j && Voices[j].IsFinished()) j--;
 

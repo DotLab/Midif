@@ -19,7 +19,7 @@
 		public int Channels = 1;
 		public double[] Samples;
 
-
+		/*
 		/// <summary>
 		/// Resample the specified samples, from oldRate to newRate.
 		/// See https://github.com/tng2903/CSUnitySynth/blob/master/Assets/Extensions/CSSynth/Wave/WaveHelper.cs
@@ -113,5 +113,6 @@
 
 			return newSamples;
 		}
+		*/
 	}
 }
