@@ -159,7 +159,7 @@ namespace Midif.File.Wave {
 		}
 
 		public void Write (Stream stream) {
-			UnityEngine.Debug.Log("Write");
+			UnityEngine.Debug.Log("Write " + this);
 			// masterChunk
 			using (var masterStream = new MemoryStream()) {
 				StreamHelperLe.WriteString(masterStream, "WAVE");
@@ -174,17 +174,17 @@ namespace Midif.File.Wave {
 					StreamHelperLe.WriteUInt16(formatStream, BitsPerSample);
 
 					var formatChunk = new RiffChunk("fmt ", formatStream.ToArray());
-					UnityEngine.Debug.Log(formatChunk.Size);
+//					UnityEngine.Debug.Log(formatChunk.Size);
 					formatChunk.Write(masterStream);
 				}
 
 				// dataChunk
 				var dataChunk = new RiffChunk("data", Data);
-				UnityEngine.Debug.Log(dataChunk.Size);
+//				UnityEngine.Debug.Log(dataChunk.Size);
 				dataChunk.Write(masterStream);
 
 				var masterChunk = new RiffChunk("RIFF", masterStream.ToArray());
-				UnityEngine.Debug.Log(masterChunk.Size);
+//				UnityEngine.Debug.Log(masterChunk.Size);
 				masterChunk.Write(stream);
 			}
 		}
