@@ -64,5 +64,7 @@
 
 			return RenderCache;
 		}
+
+		public abstract void Process (float[] buffer);
 	}
 }

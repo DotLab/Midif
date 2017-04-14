@@ -1,7 +1,10 @@
 ﻿using System;
 
 namespace Midif.Synth {
-	public static class SynthTable {
+	static class SynthTable {
+		public const double Pi = Math.PI;
+		public const double Pi2 = 2 * Math.PI;
+
 		public const int Note2FreqLeng = 0x80;
 		public const int Semi2PitcLeng = 0x100;
 		public const int Cent2PitcLeng = 0x100;

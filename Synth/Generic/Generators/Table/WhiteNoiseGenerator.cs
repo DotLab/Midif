@@ -2,16 +2,14 @@
 
 namespace Midif.Synth {
 	public sealed class WhiteNoiseGenerator : MidiGenerator {
-		const int TableLength = 0x800;
-		const int TableMod = 0x7FF;
-		static readonly double[] Table;
+		static readonly float[] Table;
 
 		static WhiteNoiseGenerator () {
 			var rand = new Random();
 
-			Table = new double[TableLength];
+			Table = new float[TableLength];
 			for (int i = 0; i < TableLength; i++)
-				Table[i] = rand.NextDouble() * 2 - 1;
+				Table[i] = (float)rand.NextDouble() * 2 - 1;
 		}
 
 
@@ -19,7 +17,7 @@ namespace Midif.Synth {
 
 		public override void NoteOn (byte note, byte velocity) {
 			if (!IsOn) phase = 0;
-			phaseStep = Speed * TableLength * CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
+			phaseStep = Speed * TableLength * CalcPhaseStep(note, Transpose, Tune);
 
 			IsOn = true;
 		}
@@ -32,6 +30,15 @@ namespace Midif.Synth {
 			}
 
 			return RenderCache;
+		}
+
+		public override void Process (float[] buffer) {
+			for (int i = 0; i < buffer.Length; i++) {
+				buffer[i] = Table[(int)phase & TableMod];
+
+				phase += phaseStep;
+				if (phase >= TableLength) phase -= TableLength;
+			}
 		}
 	}
 }

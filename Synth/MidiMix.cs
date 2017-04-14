@@ -44,7 +44,7 @@ namespace Midif.Synth {
 
 				// If dynamic polyphony and no finished voice, add a new voice;
 				if (!targetFinished && synth.DynamicPolyphony) {
-					DebugConsole.WriteLine("New Note:" + Voices.Count + " + 1");
+					UnityEngine.Debug.Log("New Note:" + Voices.Count + " + 1");
 
 					target = synth.VoiceBuilder();
 					target.Init(SampleRate);
@@ -77,8 +77,6 @@ namespace Midif.Synth {
 				target.Event = midiEvent;
 				target.NoteOn(note, velocity);
 			}
-
-			VoiceListDirty = true;
 		}
 
 		public void NoteOff (MidiTrack track, MidiChannel channel, byte note, byte velocity) {
@@ -158,6 +156,11 @@ namespace Midif.Synth {
 				sample += Voices[i].RenderRight(flag);
 			
 			return sample;
+		}
+
+		public void Process (float[] buffer) {
+			for (int i = 0; i < ActiveCount; i++)
+				Voices[i].Process(buffer);
 		}
 
 

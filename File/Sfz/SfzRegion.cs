@@ -433,7 +433,7 @@ namespace Midif.File.Sfz {
 			var field = typeof(SfzRegion).GetField(opcode);
 			if (field == null) {
 				// Ignore unknown opcode without throwing exception;
-				DebugConsole.WriteLine(new FileFormatException("SfzFile.line.opcode", opcode, "[sfz opcode]"));
+				UnityEngine.Debug.Log(new FileFormatException("SfzFile.line.opcode", opcode, "[sfz opcode]"));
 				return;
 			}
 			var fieldType = field.FieldType;

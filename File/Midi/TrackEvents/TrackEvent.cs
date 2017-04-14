@@ -61,7 +61,7 @@ namespace Midif {
 			Tick = tick;
 		}
 
-		public int CompareTo (object other) {
+		public virtual int CompareTo (object other) {
 			return Tick.CompareTo(((TrackEvent)other).Tick);
 		}
 	}

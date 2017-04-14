@@ -1,19 +1,17 @@
 ﻿namespace Midif.Synth {
 	public sealed class TriangleTableGenerator : MidiGenerator {
-		const int TableLength = 0x800;
-		const int TableMod = 0x7FF;
-		static readonly double[] Table;
+		static readonly float[] Table;
 
 		static TriangleTableGenerator () {
-			Table = new double[TableLength];
+			Table = new float[TableLength];
 			for (int i = 0; i < TableLength; i++)
-				Table[i] = System.Math.Abs(((4.0 * i / TableLength + 3) % 4) - 2) - 1;
+				Table[i] = (float)System.Math.Abs(((4.0 * i / TableMod + 3) % 4) - 2) - 1;
 		}
 
 
 		public override void NoteOn (byte note, byte velocity) {
 			if (!IsOn) phase = 0;
-			phaseStep = TableLength * CalcPhaseStep(note, Transpose, Tune, SampleRateRecip);
+			phaseStep = TableLength * CalcPhaseStep(note, Transpose, Tune);
 
 			IsOn = true;
 		}
@@ -26,6 +24,15 @@
 			}
 
 			return RenderCache;
+		}
+
+		public override void Process (float[] buffer) {
+			for (int i = 0; i < buffer.Length; i++) {
+				buffer[i] = Table[(int)phase & TableMod];
+
+				phase += phaseStep;
+				if (phase >= TableLength) phase -= TableLength;
+			}
 		}
 	}
 }

@@ -602,6 +602,15 @@ namespace Midif {
 			StatusByte = statusByte;
 		}
 
+		public override int CompareTo (object other) {
+			var e = (MidiEvent)other;
+
+			if (Tick != e.Tick)
+				return Tick.CompareTo(e.Tick);
+
+			return e.Type.CompareTo(Type);
+		}
+
 		public override string ToString () {
 			var info = "";
 

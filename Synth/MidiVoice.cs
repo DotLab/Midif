@@ -76,13 +76,11 @@
 				return Finished = false;
 			}
 
-			if (IsStereo) {
-				Finished = !Component.IsOn && !RightComponent.IsOn && Component.IsFinished() && RightComponent.IsFinished();
-				Active = !Finished;
-				return Finished;
-			}
-
-			Finished = !Component.IsOn && Component.IsFinished();
+			if (IsStereo)
+				Finished = Component.IsFinished() && RightComponent.IsFinished();
+			else
+				Finished = Component.IsFinished();
+			
 			Active = !Finished;
 			return Finished;
 		}
@@ -105,6 +103,29 @@
 				return RightComponent.Render(flag) * RightGain;
 
 			return Component.RenderCache * RightGain;
+		}
+
+		public override void Process (float[] buffer) {
+			var temp = BufferControl.RequestBuffer();
+			Component.Process(temp);
+
+			if (IsStereo) {
+				var tempRight = BufferControl.RequestBuffer();
+				RightComponent.Process(tempRight);
+
+				for (int i = 0; i < buffer.Length; i += 2) {
+					buffer[i] += temp[i >> 1] * (float)LeftGain;
+					buffer[i + 1] += tempRight[i >> 1] * (float)RightGain;
+				}
+
+				BufferControl.FreeBuffer(tempRight);
+			} else
+				for (int i = 0; i < buffer.Length; i += 2) {
+					buffer[i] += temp[i >> 1] * (float)LeftGain;
+					buffer[i + 1] += temp[i >> 1] * (float)RightGain;
+				}
+
+			BufferControl.FreeBuffer(temp);
 		}
 
 		public override string ToString () {

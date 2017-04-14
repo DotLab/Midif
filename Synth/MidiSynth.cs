@@ -59,12 +59,11 @@ namespace Midif.Synth {
 
 		public void MidiEventHandler (MidiEvent midiEvent) {
 			if (midiEvent.Type == MidiEventType.Controller) {
-				
 				if (midiEvent.Controller == MidiControllerType.MainVolume) {
 //					Gain = SynthTable.Velc2Gain[midiEvent.Value];
 
 				} else if (midiEvent.Controller == MidiControllerType.ExpressionController) {
-					Expression = SynthTable.Pcnt2Gain[midiEvent.Value];
+//					Expression = SynthTable.Pcnt2Gain[midiEvent.Value];
 			
 				} else if (midiEvent.Controller == MidiControllerType.Pan) {
 //					Pan = SynthTable.Expr2Pcnt[midiEvent.Value] * 2 - 1;
@@ -77,9 +76,9 @@ namespace Midif.Synth {
 					}
 
 					Sustain = midiEvent.Value >= 0x40;
-					DebugConsole.WriteLine("Sustain: " + (Sustain ? "On" : "Off"));
+					UnityEngine.Debug.Log("Sustain: " + (Sustain ? "On" : "Off"));
 				} else if (midiEvent.Controller == MidiControllerType.Modulation) {
-					DebugConsole.WriteLine("Modulation Wheel " + (midiEvent.Value));
+					UnityEngine.Debug.Log("Modulation Wheel " + (midiEvent.Value));
 				}
 			}
 		}

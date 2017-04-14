@@ -48,7 +48,7 @@ namespace Midif.File.Sfz {
 						master.SetParam(line);
 					else
 						// Ignore unknown token without throwing exception;
-						DebugConsole.WriteLine(new FileFormatException("SfzFile.line", line, "<group>|<region>|[opcode]=[value]"));
+						UnityEngine.Debug.Log(new FileFormatException("SfzFile.line", line, "<group>|<region>|[opcode]=[value]"));
 					//						throw new FileFormatException("SfzFile.line", line, "<group>|<region>|[opcode]=[value]");
 				}
 			}
