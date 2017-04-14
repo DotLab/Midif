@@ -14,6 +14,7 @@ namespace Midif.Synth {
 			if (BufferStack.Count > 0)
 				return BufferStack.Pop();
 
+			UnityEngine.Debug.Log("New buffer");
 			return new float[SynthConfig.BufferSize];
 		}
 
