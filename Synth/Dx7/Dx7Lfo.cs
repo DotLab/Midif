@@ -120,8 +120,8 @@ namespace Midif.Synth.Dx7 {
 			switch (LfoWaveform) {
 			case Waveform.Triangle:
 				for (int i = 0; i < buffer.Length; i++) {
-					if (phase < Pi) RenderCache = 4 * phase * Pi2Recip - 1;
-					else RenderCache = 3 - 4 * phase * Pi2Recip;
+					if (phase < Pi) buffer[i] = (float)(4 * phase * Pi2Recip - 1);
+					else buffer[i] = (float)(3 - 4 * phase * Pi2Recip);
 
 					phase += phaseStep;
 					if (phase > Pi2) phase -= Pi2;
@@ -129,7 +129,7 @@ namespace Midif.Synth.Dx7 {
 				break;
 			case Waveform.SawDown:
 				for (int i = 0; i < buffer.Length; i++) {
-					RenderCache = 1 - 2 * phase * Pi2Recip;
+					buffer[i] = (float)(1 - 2 * phase * Pi2Recip);
 
 					phase += phaseStep;
 					if (phase > Pi2) phase -= Pi2;
@@ -137,7 +137,7 @@ namespace Midif.Synth.Dx7 {
 				break;
 			case Waveform.SawUp:
 				for (int i = 0; i < buffer.Length; i++) {
-					RenderCache = 2 * phase * Pi2Recip - 1;
+					buffer[i] = (float)(2 * phase * Pi2Recip - 1);
 
 					phase += phaseStep;
 					if (phase > Pi2) phase -= Pi2;
@@ -145,7 +145,7 @@ namespace Midif.Synth.Dx7 {
 				break;
 			case Waveform.Square:
 				for (int i = 0; i < buffer.Length; i++) {
-					RenderCache = (phase < Pi) ? -1 : 1;
+					buffer[i] = (phase < Pi) ? 1 : -1;
 
 					phase += phaseStep;
 					if (phase > Pi2) phase -= Pi2;
@@ -153,7 +153,7 @@ namespace Midif.Synth.Dx7 {
 				break;
 			case Waveform.Sine:
 				for (int i = 0; i < buffer.Length; i++) {
-					RenderCache = Math.Sin(phase);
+					buffer[i] = (float)Math.Sin(phase);
 
 					phase += phaseStep;
 					if (phase > Pi2) phase -= Pi2;
@@ -161,7 +161,7 @@ namespace Midif.Synth.Dx7 {
 				break;
 			case Waveform.SampleHold:
 				for (int i = 0; i < buffer.Length; i++) {
-					RenderCache = sampleHoldRandom;
+					buffer[i] = (float)sampleHoldRandom;
 					phase += phaseStep;
 					if (phase > Pi2) {
 						phase -= Pi2;
