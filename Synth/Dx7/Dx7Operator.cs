@@ -8,6 +8,7 @@ namespace Midif.Synth.Dx7 {
 		const double OCTAVE_1024 = 1.0006771307;
 		//		static readonly double OCTAVE_1024 = Math.Exp(Math.Log(2) / 1024);
 	
+		/* Never used
 		static readonly double[] VelocityAdjustTable =
 			{
 				-99.0,    -10.295511, -9.709229, -9.372207,
@@ -43,7 +44,7 @@ namespace Midif.Synth.Dx7 {
 				0.818939,  0.897102,  0.895082,  0.927998,
 				0.929797,  0.956112,  0.956789,  0.958121
 			};
-
+*/
 		#endregion
 
 		public bool Enabled = true;

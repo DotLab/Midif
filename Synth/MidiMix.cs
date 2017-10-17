@@ -23,6 +23,17 @@ namespace Midif.Synth {
 			Count = Voices.Count;
 		}
 
+		public void Reset () {
+			foreach (var voice in Voices) {
+				voice.NoteOff(0, 0);
+			}
+
+			foreach (var synth in Synths) {
+				synth.Sustain = false;
+				synth.SustainedVoices.Clear();
+			}
+		}
+
 		public void NoteOn (MidiTrack track, MidiChannel channel, byte note, byte velocity, MidiEvent midiEvent) {
 			foreach (var synth in Synths) {
 				if ((track & synth.Track) != track || (channel & synth.Channel) != channel)
@@ -59,7 +70,8 @@ namespace Midif.Synth {
 //				target.Pan = synth.Pan + synth.Width * ((note % 12) - 6.0) / 6.0;
 				target.Pan = synth.Pan + synth.Width * (note - 69.0) / 64.0;
 
-				if (synth.Velocity != 0) velocity = synth.Velocity;
+				if (synth.Velocity != 0)
+					velocity = synth.Velocity;
 
 				double velcGain = 1;
 				if (!synth.IgnoreVelocity)
@@ -111,8 +123,10 @@ namespace Midif.Synth {
 
 			int i = 0, j = Count - 1;
 			while (i < j) {
-				while (i < Count && !Voices[i].IsFinished()) i++;
-				while (i < j && Voices[j].IsFinished()) j--;
+				while (i < Count && !Voices[i].IsFinished())
+					i++;
+				while (i < j && Voices[j].IsFinished())
+					j--;
 
 				if (i >= j)
 					break;
