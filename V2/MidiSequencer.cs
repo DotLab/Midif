@@ -11,6 +11,8 @@ namespace Midif.V2 {
 		public double beatsPerSecond;
 		public double ticks;
 
+		public bool isFinished;
+
 		public static void Init(MidiSequencer *self, MidiFile *file, Synth *synth) {
 			self->file = file;
 			self->synth = synth;
@@ -27,6 +29,7 @@ namespace Midif.V2 {
 			// default tempo 120 bpm
 			self->beatsPerSecond = 2;
 			self->ticks = 0;
+			self->isFinished = false;
 		}
 
 		public static void AdvanceTime(MidiSequencer *self, double time) {
@@ -35,9 +38,11 @@ namespace Midif.V2 {
 
 			double ticks = self->ticks += time * self->beatsPerSecond * file->ticksPerBeat;
 
+			bool isFinished = true;
 			for (int i = 0, count = file->trackCount; i < count; i += 1) {
 				int trackLength = file->trackLengths[i];
 				if (self->trackLocs[i] >= trackLength) continue;
+				isFinished = false;
 
 				MidiFile.Event *e = (MidiFile.Event *)(file->tracks[i] + self->trackLocs[i]);
 				while (self->trackLocs[i] < trackLength && ticks - self->trackTicks[i] >= e->delta) {
@@ -47,6 +52,7 @@ namespace Midif.V2 {
 					e = (MidiFile.Event *)(file->tracks[i] + self->trackLocs[i]);
 				}
 			}
+			self->isFinished = isFinished;
 		}
 
 		public static void HandleEvent(MidiSequencer *self, int track, MidiFile.Event *e) {
@@ -71,10 +77,10 @@ namespace Midif.V2 {
 				UnityEngine.Debug.LogFormat("aftertouch {0} {1}", track, channel);
 				break;
 			case 0xb:  // controller
-				UnityEngine.Debug.LogFormat("controller {0} {1} {2} {3}", track, channel, data[0], data[1]);
+				Synth.Controller(self->synth, track, channel, data[0], data[1]);
 				break;
 			case 0xc:  // program change
-				UnityEngine.Debug.LogFormat("program change {0} {1}", track, channel);
+//				UnityEngine.Debug.LogFormat("program change {0} {1}", track, channel);
 				break;
 			case 0xd:  // channel pressure
 				UnityEngine.Debug.LogFormat("channel pressure {0} {1}", track, channel);
