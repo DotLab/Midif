@@ -35,6 +35,7 @@ namespace Midif.V2 {
 		public short ticksPerBeat;
 
 		public byte **tracks;
+		public int *trackLengths;
 
 		public static void Init(MidiFile *self, byte *bytes) {
 			int EventSize = sizeof(Event);
@@ -44,15 +45,16 @@ namespace Midif.V2 {
 			// "MThd" 4 bytes
 			i += 4;
 			// <header_length> 4 bytes
-			int length = BitBe.ReadInt(bytes, &i);
+			int length = BitBe.ReadInt32(bytes, &i);
 			int ii = i;
 			// <format> 2 bytes
-			self->format = BitBe.ReadShort(bytes, &i);
+			self->format = BitBe.ReadInt16(bytes, &i);
 			// <n> 2 bytes
-			self->trackCount = BitBe.ReadShort(bytes, &i);
+			self->trackCount = BitBe.ReadInt16(bytes, &i);
 			self->tracks = (byte **)Mem.Malloc(self->trackCount * sizeof(byte *));
+			self->trackLengths = (int *)Mem.Malloc(self->trackCount * sizeof(int));
 			// <division> 2 bytes
-			self->ticksPerBeat = BitBe.ReadShort(bytes, &i);
+			self->ticksPerBeat = BitBe.ReadInt16(bytes, &i);
 			// end chunk
 			i = ii + length;
 
@@ -63,7 +65,7 @@ namespace Midif.V2 {
 				// "MTrk" 4 bytes
 				i += 4;
 				// <length> 4 bytes
-				length = BitBe.ReadInt(bytes, &i);
+				length = BitBe.ReadInt32(bytes, &i);
 				ii = i;
 				// <track_event>
 //				UnityEngine.Debug.LogFormat("New track {0}", j);
@@ -110,6 +112,7 @@ namespace Midif.V2 {
 					i += dataLength;
 				}
 				self->tracks[j] = (byte *)Buf.Trim(buf);
+				self->trackLengths[j] = buf->end;
 				// end chunk
 				i = ii + length;
 			}

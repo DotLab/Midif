@@ -34,20 +34,28 @@ namespace Midif.V2 {
 			double ticks = self->ticks += time * self->beatsPerSecond * file->ticksPerBeat;
 
 			for (int i = 0, count = file->trackCount; i < count; i += 1) {
+				int trackLength = file->trackLengths[i];
+				if (self->trackLocs[i] >= trackLength) continue;
+
 				MidiFile.Event *e = (MidiFile.Event *)(file->tracks[i] + self->trackLocs[i]);
-//				Fdb.Dump(e, EventSize + e->length, EventSize);
-				while (ticks - self->trackTicks[i] >= e->delta) {
-					HandleEvent(i, e);
+				while (self->trackLocs[i] < trackLength && ticks - self->trackTicks[i] >= e->delta) {
+					HandleEvent(self, i, e);
 					self->trackLocs[i] += EventSize + e->length;
 					self->trackTicks[i] += e->delta;
 					e = (MidiFile.Event *)(file->tracks[i] + self->trackLocs[i]);
 				}
-//				Fdb.Dump(e, EventSize + e->length, EventSize);
 			}
 		}
 
-		public static void HandleEvent(int track, MidiFile.Event *e) {
+		public static void HandleEvent(MidiSequencer *self, int track, MidiFile.Event *e) {
 			byte *data = (byte *)(e + 1);
+			if (e->status == 0xff && data[0] == 0x51) {  // meta tempo
+				int i = 1;
+				// 24-bit value specifying the tempo as the number of microseconds per beat
+				int microsecondsPerBeat = BitBe.ReadInt24(data, &i);
+				self->beatsPerSecond = (1000000.0 / (double)microsecondsPerBeat);
+			}
+
 			switch (e->length) {
 			case 0:
 				UnityEngine.Debug.LogFormat("{0}: 0x{1:X}", track, e->status);
