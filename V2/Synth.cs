@@ -2,8 +2,102 @@
 
 namespace Midif.V2 {
 	public unsafe struct Synth {
+		public unsafe struct EnvelopeConfig {
+			public const byte LevelCount = 4;
+
+			// 0 - 127
+			public fixed byte levels[LevelCount];
+			// seconds
+			public fixed float durations[LevelCount];
+
+			public SynthTable *table;
+			public fixed float gains[LevelCount];
+			public fixed float gainsPerSecond[LevelCount];
+
+			public static void Init(EnvelopeConfig *self, SynthTable *table, byte l1, float d1, byte l2, float d2, byte l3, float d3, byte l4, float d4) {
+				self->table = table;
+				self->levels[0] = l1;
+				self->levels[1] = l2;
+				self->levels[2] = l3;
+				self->levels[3] = l4;
+				self->durations[0] = d1;
+				self->durations[1] = d2;
+				self->durations[2] = d3;
+				self->durations[3] = d4;
+				Reset(self);
+			}
+
+			public static void Reset(EnvelopeConfig *self) {
+				float prev = self->table->volm2Gain[self->levels[LevelCount - 1]];
+				for (int i = 0; i < LevelCount; i += 1) {
+					self->gains[i] = self->table->volm2Gain[self->levels[i]];
+					self->gainsPerSecond[i] = (self->gains[i] - prev) / self->durations[i];
+					prev = self->gains[i];
+				}
+			}
+		}
+
+		public unsafe struct Envelope {
+			public EnvelopeConfig *config;
+
+			public bool isOff;
+			public bool isFinished;
+
+			public byte stage;
+			public float time;
+			public float duration;
+			public float gain;
+
+			public static void Init(Envelope *self, EnvelopeConfig *config) {
+				self->config = config;
+			}
+
+			public static void Reset(Envelope *self) {
+				self->isOff = false;
+				self->isFinished = false;
+
+				self->stage = 0;
+				self->time = 0;
+				self->duration = self->config->durations[0];
+				self->gain = self->config->gains[EnvelopeConfig.LevelCount - 1];
+			}
+
+			public static void Off(Envelope *self) {
+				self->isOff = true;
+				const byte lastIndex = EnvelopeConfig.LevelCount - 1;
+				if (self->stage < lastIndex) {
+					self->stage = lastIndex;
+					EnvelopeConfig *config = self->config;
+					self->time = 0;
+					self->duration = (config->gains[lastIndex] - self->gain) / config->gainsPerSecond[lastIndex];
+				}
+			}
+
+			public static void AdvanceTime(Envelope *self, float time) {
+				if (self->stage >= EnvelopeConfig.LevelCount) return;
+				if (self->stage == EnvelopeConfig.LevelCount - 1 && !self->isOff) return; 
+
+				EnvelopeConfig *config = self->config;
+
+				self->gain += time * config->gainsPerSecond[self->stage];
+				self->time += time;
+
+				if (self->time > self->duration) {
+					int stage = self->stage += 1;
+					if (self->stage < EnvelopeConfig.LevelCount) {
+						self->time -= config->durations[stage - 1];
+						self->duration = config->durations[stage];
+						self->gain = config->gains[stage - 1] + self->time * config->gainsPerSecond[self->stage];
+//						Fdb.Log("finish {0}", stage - 1);
+					} else {
+						self->isFinished = true;
+						self->gain = config->gains[EnvelopeConfig.LevelCount - 1];
+					}
+				}
+			}
+		}
+
 		public unsafe struct Voice {
-			public bool isOn;
 			public byte note;
 			public byte velocity;
 			public byte channel;
@@ -13,6 +107,8 @@ namespace Midif.V2 {
 			public float gainRight;
 
 			public float time;
+
+			public Envelope envelope;
 
 			public Voice *next;
 		}
@@ -34,6 +130,8 @@ namespace Midif.V2 {
 		public Voice *firstFreeVoice;
 		public Voice *firstActiveVoice;
 
+		public EnvelopeConfig envelopeConfig;
+
 		public static void Init(Synth *self, SynthTable *table, float sampleRate, int voiceCount = 12) {
 			self->table = table;
 
@@ -42,9 +140,15 @@ namespace Midif.V2 {
 
 			self->masterGain = 1;
 
+			EnvelopeConfig.Init(&self->envelopeConfig, self->table, 127, .1f, 100, .15f, 100, .1f, 0, .05f);
+
 			self->voiceCount = voiceCount;
 			self->voices = (Voice *)Mem.Malloc(voiceCount * sizeof(Voice));
-
+			for (int i = 0, count = self->voiceCount; i < count; i += 1) {
+				Voice *voice = self->voices + i;
+				Envelope.Init(&voice->envelope, &self->envelopeConfig);
+			}
+			WaveVisualizer.Data = new float[(int)sampleRate];
 			Reset(self);
 		}
 
@@ -63,7 +167,6 @@ namespace Midif.V2 {
 			Voice *voice = null;
 			for (int i = 0, count = self->voiceCount; i < count; i += 1) {
 				voice = self->voices + i;
-				voice->isOn = false;
 				voice->next = voice + 1;
 			}
 			voice->next = null;
@@ -85,11 +188,12 @@ namespace Midif.V2 {
 			voice->next = self->firstActiveVoice;
 			self->firstActiveVoice = voice;
 
-			voice->isOn = true;
 			voice->note = note;
 			voice->velocity = velocity;
 			voice->channel = channel;
 			voice->time = 0;
+
+			Envelope.Reset(&voice->envelope);
 
 			UpdatePitch(self, voice);
 			UpdateGain(self, voice);
@@ -100,21 +204,11 @@ namespace Midif.V2 {
 			if (channel == 9) return;
 
 			Voice *voice = self->firstActiveVoice;
-			Voice **ptr = &self->firstActiveVoice;
 			while (voice != null) {
 				if (voice->channel == channel && voice->note == note) {
-					// note off
-					voice->isOn = false;
-					*ptr = voice->next;
-					Voice *next = voice->next;
-					voice->next = self->firstFreeVoice;
-					self->firstFreeVoice = voice;
-					// do not update ptr
-					voice = next;
-				} else {
-					ptr = &voice->next;
-					voice = voice->next;
+					Envelope.Off(&voice->envelope);
 				}
+				voice = voice->next;
 			}
 		}
 
@@ -206,22 +300,41 @@ namespace Midif.V2 {
 
 		public static void Process(Synth *self, float length, float *data) {
 			float pi2 = self->table->pi2;
+			Voice *voice;
 
 			for (int i = 0; i < length; i += 2) {
 				float left = 0;
 				float right = 0;
 
-				Voice *voice = self->firstActiveVoice;
+				voice = self->firstActiveVoice;
 				while (voice != null) {
-					float value = (float)System.Math.Sin(voice->time * voice->freq * pi2);
+					float envelopeGain = voice->envelope.gain;
+					float value = envelopeGain * (float)System.Math.Sin(voice->time * voice->freq * pi2);
 					left += value * voice->gainLeft;
 					right += value * voice->gainRight;
+					Envelope.AdvanceTime(&voice->envelope, self->sampleRateRecip);
 					voice->time += self->sampleRateRecip;
 					voice = voice->next;
 				}
-					
+				WaveVisualizer.Push(left);
 				data[i] = left;
 				data[i + 1] = right;
+			}
+
+			Voice **ptr = &self->firstActiveVoice;
+			voice = self->firstActiveVoice;
+			float time = length * self->sampleRateRecip;
+			while (voice != null) {
+				if (voice->envelope.isFinished) {
+					*ptr = voice->next;
+					Voice *next = voice->next;
+					voice->next = self->firstFreeVoice;
+					self->firstFreeVoice = voice;
+					voice = next;
+				} else {
+					ptr = &voice->next;
+					voice = voice->next;
+				}
 			}
 		}
 	}
