@@ -3,6 +3,7 @@
 namespace Midif.V2 {
 	public unsafe struct MidiSequencer {
 		public MidiFile *file;
+		public Synth *synth;
 
 		public int *trackLocs;
 		public double *trackTicks;
@@ -10,8 +11,9 @@ namespace Midif.V2 {
 		public double beatsPerSecond;
 		public double ticks;
 
-		public static void Init(MidiSequencer *self, MidiFile *file) {
+		public static void Init(MidiSequencer *self, MidiFile *file, Synth *synth) {
 			self->file = file;
+			self->synth = synth;
 			self->trackLocs = (int *)Mem.Malloc(file->trackCount * sizeof(int));
 			self->trackTicks = (double *)Mem.Malloc(file->trackCount * sizeof(double));
 			Reset(self);
@@ -56,20 +58,48 @@ namespace Midif.V2 {
 				self->beatsPerSecond = (1000000.0 / (double)microsecondsPerBeat);
 			}
 
-			switch (e->length) {
-			case 0:
-				UnityEngine.Debug.LogFormat("{0}: 0x{1:X}", track, e->status);
+			byte channel = (byte)(e->status & 0xf);
+
+			switch (e->status >> 4) {
+			case 0x8:  // note off
+				Synth.NoteOff(self->synth, track, channel, data[0], data[1]);
 				break;
-			case 1:
-				UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X}", track, e->status, data[0]);
+			case 0x9:  // note on
+				Synth.NoteOn(self->synth, track, channel, data[0], data[1]);
 				break;
-			case 2:
-				UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X}", track, e->status, data[0], data[1]);
+			case 0xa:  // aftertouch
+				UnityEngine.Debug.LogFormat("aftertouch {0} {1}", track, channel);
 				break;
-			case 3:
-				UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X} 0x{4:X}", track, e->status, data[0], data[1], data[2]);
+			case 0xb:  // controller
+				UnityEngine.Debug.LogFormat("controller {0} {1} {2} {3}", track, channel, data[0], data[1]);
+				break;
+			case 0xc:  // program change
+				UnityEngine.Debug.LogFormat("program change {0} {1}", track, channel);
+				break;
+			case 0xd:  // channel pressure
+				UnityEngine.Debug.LogFormat("channel pressure {0} {1}", track, channel);
+				break;
+			case 0xe:  // pitch bend
+				Synth.PitchBend(self->synth, track, channel, data[0], data[1]);
+				break;
+			default:
+				switch (e->length) {
+				case 0:
+					UnityEngine.Debug.LogFormat("{0}: 0x{1:X}", track, e->status);
+					break;
+				case 1:
+					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X}", track, e->status, data[0]);
+					break;
+				case 2:
+					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X}", track, e->status, data[0], data[1]);
+					break;
+				case 3:
+					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X} 0x{4:X}", track, e->status, data[0], data[1], data[2]);
+					break;
+				}
 				break;
 			}
+
 		}
 
 		public static void Free(MidiSequencer *self) {

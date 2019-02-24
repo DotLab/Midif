@@ -16,15 +16,15 @@ namespace Midif.V2 {
 		}
 
 		static int GetMidiEventLength(byte statusByte) {
-			switch (statusByte & 0xf0) {
-			case 0x80:  // note off
-			case 0x90:  // note on
-			case 0xa0:  // aftertouch
-			case 0xb0:  // controller
-			case 0xe0:  // pitch bend
+			switch (statusByte >> 4) {
+			case 0x8:  // note off
+			case 0x9:  // note on
+			case 0xa:  // aftertouch
+			case 0xb:  // controller
+			case 0xe:  // pitch bend
 				return 2;
-			case 0xc0:  // program change
-			case 0xd0:  // channel pressure
+			case 0xc:  // program change
+			case 0xd:  // channel pressure
 				return 1;
 			}
 			return 0;
