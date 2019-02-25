@@ -31,6 +31,110 @@ namespace Midif.V3 {
 	}
 
 	public sealed class MidiSynth {
+		public sealed class EnvelopeConfig {
+			public readonly MidiSynthTable table;
+			// 0 - 127
+			public readonly byte[] levels = new byte[4];
+			// seconds
+			public readonly float[] durations = new float[4];
+
+			public readonly float[] gains = new float[4];
+			public readonly float[] gainsPerSecond = new float[4];
+
+			public EnvelopeConfig(MidiSynthTable table, byte l1, float d1, byte l2, float d2, byte l3, float d3, byte l4, float d4) {
+				this.table = table;
+				levels[0] = l1;
+				levels[1] = l2;
+				levels[2] = l3;
+				levels[3] = l4;
+				durations[0] = d1;
+				durations[1] = d2;
+				durations[2] = d3;
+				durations[3] = d4;
+				Reset();
+			}
+
+			public void Reset() {
+				float prev = table.volm2Gain[levels[3]];
+				for (int i = 0; i < 4; i += 1) {
+					gains[i] = table.volm2Gain[levels[i]];
+					gainsPerSecond[i] = (gains[i] - prev) / durations[i];
+					prev = gains[i];
+				}
+			}
+		}
+
+		public struct Envelope {
+			public EnvelopeConfig config;
+
+			public bool isOff;
+			public bool isFinished;
+
+			public byte stage;
+			public float time;
+			public float duration;
+			public float gainsPerSecond;
+			public float gain;
+
+			public Envelope(EnvelopeConfig config) {
+				this.config = config;
+
+				isOff = false;
+				isFinished = false;
+
+				stage = 0;
+				time = 0;
+				duration = 0;
+				gainsPerSecond = 0;
+				gain = 0;
+			}
+
+			public void Reset() {
+				isOff = false;
+				isFinished = false;
+
+				stage = 0;
+				time = 0;
+				duration = config.durations[0];
+				gainsPerSecond = config.gainsPerSecond[0];
+				gain = config.gains[3];
+			}
+
+			public void Off() {
+				isOff = true;
+				if (stage < 3) {
+					stage = 3;
+					time = 0;
+					duration = (config.gains[3] - gain) / config.gainsPerSecond[3];
+					gainsPerSecond = config.gainsPerSecond[3];
+//					duration = config.durations[3];
+//					gainsPerSecond = (config.gains[3] - gain) / config.durations[3];
+				}
+			}
+
+			public void AdvanceTime(float delta) {
+				if (stage >= 4) return;
+				if (stage == 3 && !isOff) return; 
+
+				gain += delta * gainsPerSecond;
+				time += delta;
+
+				if (time > duration) {
+					stage += 1;
+					if (stage < 4) {
+						time -= config.durations[stage - 1];
+						duration = config.durations[stage];
+						gainsPerSecond = config.gainsPerSecond[stage];
+						gain = config.gains[stage - 1] + time * gainsPerSecond;
+//						Fdb.Log("finish {0}", stage - 1);
+					} else {
+						isFinished = true;
+						gain = config.gains[4 - 1];
+					}
+				}
+			}
+		}
+
 		public struct Voice {
 			public byte note;
 			public byte velocity;
@@ -42,7 +146,7 @@ namespace Midif.V3 {
 
 			public float time;
 
-			public bool isOn;
+			public Envelope envelope;
 
 			public int next;
 		}
@@ -64,18 +168,25 @@ namespace Midif.V3 {
 		public int firstFreeVoice;
 		public int firstActiveVoice;
 
+		public EnvelopeConfig envelopeConfig;
+
 		public MidiSynth(MidiSynthTable table, float sampleRate, int voiceCount) {
 			WaveVisualizer.Data = new float[(int)sampleRate];
 
 			this.table = table;
 
 			this.sampleRate = sampleRate;
-			this.sampleRateRecip = 1f / sampleRate;
+			sampleRateRecip = 1f / sampleRate;
 
 			masterGain = 1;
 
+			envelopeConfig = new EnvelopeConfig(table, 120, .01f, 60, .1f, 100, .5f, 0, .01f);
+
 			this.voiceCount = voiceCount;
 			voices = new Voice[voiceCount];
+			for (int i = 0; i < voiceCount; i += 1) {
+				voices[i].envelope = new Envelope(envelopeConfig);
+			}
 
 			Reset();
 		}
@@ -107,7 +218,10 @@ namespace Midif.V3 {
 				return;
 			}
 
-			if (firstFreeVoice == -1) return;
+			if (firstFreeVoice == -1) {
+				UnityEngine.Debug.LogFormat("Not enough notes active {0} free {1}", CountVoices(firstActiveVoice), CountVoices(firstFreeVoice));
+				return;
+			}
 			int i = firstFreeVoice;
 			firstFreeVoice = voices[i].next;
 			voices[i].next = firstActiveVoice;
@@ -117,6 +231,7 @@ namespace Midif.V3 {
 			voices[i].velocity = velocity;
 			voices[i].channel = channel;
 			voices[i].time = 0;
+			voices[i].envelope.Reset();
 
 			UpdateVoicePitch(i);
 			UpdateVoiceGain(i);
@@ -125,16 +240,9 @@ namespace Midif.V3 {
 		public void NoteOff(int track, byte channel, byte note, byte velocity) {
 			if (channel == 9) return;
 
-			for (int prev = -1, i = firstActiveVoice; i != -1;) {
+			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel && voices[i].note == note) {
-					if (prev != -1) voices[prev].next = voices[i].next; else firstActiveVoice = voices[i].next;
-					int next = voices[i].next;
-					voices[i].next = firstFreeVoice;
-					firstFreeVoice = i;
-					i = next;
-				} else {
-					prev = i;
-					i = voices[i].next;
+					voices[i].envelope.Off();
 				}
 			}
 		}
@@ -161,26 +269,50 @@ namespace Midif.V3 {
 			UpdateChannelPitch(channel);
 		}
 
+		public int CountVoices(int i) {
+			int j = 0;
+			for (; i != -1; i = voices[i].next) {
+				j += 1;
+			}
+			return j;
+		}
+
+		public void Panic() {
+			for (int prev = -1, i = firstActiveVoice; i != -1;) {
+				if (voices[i].envelope.isFinished) {
+					if (prev != -1) voices[prev].next = voices[i].next; else firstActiveVoice = voices[i].next;
+					int next = voices[i].next;
+					voices[i].next = firstFreeVoice;
+					firstFreeVoice = i;
+					i = next;
+				} else {
+					prev = i;
+					i = voices[i].next;
+				}
+			}
+		}
+
 		public void Process(float[] data) {
 			for (int i = 0, length = data.Length; i < length; i += 2) {
 				float left = 0;
 				float right = 0;
 
 				for (int j = firstActiveVoice; j != -1; j = voices[j].next) {
-					// float envelopeGain = voices[i].envelope.gain;
-					float value = (float)System.Math.Sin(voices[j].time * voices[j].freq * MidiSynthTable.Pi2);
+					 float envelopeGain = voices[j].envelope.gain;
+					voices[j].envelope.AdvanceTime(sampleRateRecip);
+					float value = envelopeGain * (float)Math.Sin(voices[j].time * voices[j].freq * MidiSynthTable.Pi2);
 					left += value * voices[j].gainLeft;
 					right += value * voices[j].gainRight;
-					// Envelope.AdvanceTime(&voices[i].envelope, sampleRateRecip);
 					voices[j].time += sampleRateRecip;
 				}
 				
-				// WaveVisualizer.Push(left);
 				data[i] = left;
 				data[i + 1] = right;
 				
 				WaveVisualizer.Push(left);
 			}
+
+			Panic();
 		}
 
 		void UpdateVoiceGain(int i) {
