@@ -140,7 +140,7 @@ namespace Midif.V2 {
 
 			self->masterGain = 1;
 
-			EnvelopeConfig.Init(&self->envelopeConfig, self->table, 127, .1f, 100, .15f, 100, .1f, 0, .05f);
+			EnvelopeConfig.Init(&self->envelopeConfig, self->table, 120, .01f, 55, .1f, 100, .4f, 0, .05f);
 
 			self->voiceCount = voiceCount;
 			self->voices = (Voice *)Mem.Malloc(voiceCount * sizeof(Voice));
