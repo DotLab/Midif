@@ -23,7 +23,7 @@ namespace Midif.V3 {
 		}
 	}
 
-	public struct MidiFile {
+	public sealed class MidiFile {
 		public short format;
 		public short trackCount;
 		public short ticksPerBeat;
