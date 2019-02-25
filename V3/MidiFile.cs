@@ -5,21 +5,21 @@ namespace Midif.V3 {
 	public struct MidiEvent {
 		public int delta;
 		public byte status;
+		public byte type;
 		public byte b1;
 		public byte b2;
-		public byte b3;
 		public int dataLoc;
 		public int dataLen;
 
-		public MidiEvent(int delta, byte status, int dataLoc, int dataLen, byte[] bytes) {
+		public MidiEvent(int delta, byte status, byte type, int dataLoc, int dataLen, byte[] bytes) {
 			this.delta = delta;
 			this.status = status;
+			this.type = type;
 			this.dataLoc = dataLoc;
 			this.dataLen = dataLen;
 
 			if (dataLen > 0) b1 = bytes[dataLoc]; else b1 = 0;
 			if (dataLen > 1) b2 = bytes[dataLoc + 1]; else b2 = 0;
-			if (dataLen > 2) b3 = bytes[dataLoc + 2]; else b3 = 0;
 		}
 	}
 
@@ -62,30 +62,25 @@ namespace Midif.V3 {
 				length = BitBe.ReadInt32(bytes, ref i);
 				ii = i;
 				// <track_event>
-				UnityEngine.Debug.LogFormat("New track {0}", j);
 				while (i < ii + length) {
 					int delta = BitBe.ReadVlv(bytes, ref i);
 					byte statusByte = Bit.ReadByte(bytes, ref i);
 					int dataLength;
 					if (statusByte < 0x80) {  // running status
 						dataLength = GetMidiEventLength(runingStatus);
-						track.Add(new MidiEvent(delta, runingStatus, i - 1, dataLength, bytes));
+						track.Add(new MidiEvent(delta, runingStatus, 0, i - 1, dataLength, bytes));
 						dataLength -= 1;
-						UnityEngine.Debug.LogFormat("{1}: midi {0:X} {2:X} R", runingStatus, delta, statusByte);
 					} else if (statusByte < 0xf0) {  // midi events
 						runingStatus = statusByte;
 						dataLength = GetMidiEventLength(statusByte);
-						track.Add(new MidiEvent(delta, statusByte, i, dataLength, bytes));
-						UnityEngine.Debug.LogFormat("{1}: midi {0:X}", statusByte, delta);
+						track.Add(new MidiEvent(delta, statusByte, 0, i, dataLength, bytes));
 					} else if (statusByte == 0xf0 || statusByte == 0xf7) {  // sysex events | escape sequences
 						dataLength = BitBe.ReadVlv(bytes, ref i);
-						track.Add(new MidiEvent(delta, statusByte, i, dataLength, bytes));
-						UnityEngine.Debug.LogFormat("{1}: sysex {0:X}", statusByte, delta);
+						track.Add(new MidiEvent(delta, statusByte, 0, i, dataLength, bytes));
 					} else if (statusByte == 0xff) {  // meta events
 						byte type = Bit.ReadByte(bytes, ref i);
 						dataLength = BitBe.ReadVlv(bytes, ref i);
-						track.Add(new MidiEvent(delta, statusByte, i, dataLength, bytes));
-						UnityEngine.Debug.LogFormat("{2}: meta {0:X} {1:X}", statusByte, type, delta);
+						track.Add(new MidiEvent(delta, statusByte, type, i, dataLength, bytes));
 					} else {
 						return;
 					}

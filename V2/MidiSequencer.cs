@@ -89,20 +89,20 @@ namespace Midif.V2 {
 				Synth.PitchBend(self->synth, track, channel, data[0], data[1]);
 				break;
 			default:
-				switch (e->length) {
-				case 0:
-					UnityEngine.Debug.LogFormat("{0}: 0x{1:X}", track, e->status);
-					break;
-				case 1:
-					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X}", track, e->status, data[0]);
-					break;
-				case 2:
-					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X}", track, e->status, data[0], data[1]);
-					break;
-				case 3:
-					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X} 0x{4:X}", track, e->status, data[0], data[1], data[2]);
-					break;
-				}
+//				switch (e->length) {
+//				case 0:
+//					UnityEngine.Debug.LogFormat("{0}: 0x{1:X}", track, e->status);
+//					break;
+//				case 1:
+//					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X}", track, e->status, data[0]);
+//					break;
+//				case 2:
+//					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X}", track, e->status, data[0], data[1]);
+//					break;
+//				case 3:
+//					UnityEngine.Debug.LogFormat("{0}: 0x{1:X} 0x{2:X} 0x{3:X} 0x{4:X}", track, e->status, data[0], data[1], data[2]);
+//					break;
+//				}
 				break;
 			}
 
