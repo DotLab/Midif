@@ -29,24 +29,6 @@ namespace Midif.V3 {
 		// [<sm24-ck>] ; The Digital Audio Samples for the lower 8 bits
 		public float[] samples;
 
-		// <phdr-ck> ; The Preset Headers
-		public PresetHeader[] presetHeaders;
-		// <pbag-ck> ; The Preset Index list
-		public Bag[] presetBags;
-		// <pmod-ck> ; The Preset Modulator list
-		public Modulator[] presetModulators;
-		// <pgen-ck> ; The Preset Generator list
-		public Generator[] presetGenerators;
-
-		// <inst-ck> ; The Instrument Names and Indices
-		public InstrumentHeader[] instrumentHeaders;
-		// <ibag-ck> ; The Instrument Index list
-		public Bag[] instrumentBags;
-		// <imod-ck> ; The Instrument Modulator list
-		public Modulator[] instrumentModulators;
-		// <igen-ck> ; The Instrument Generator list
-		public Generator[] instrumentGenerators;
-
 		// <shdr-ck> ; The Sample Headers
 		public SampleHeader[] sampleHeaders;
 
@@ -131,56 +113,48 @@ namespace Midif.V3 {
 			var phdrChunk = new Chunk(bytes, ref i);
 			var phdrList = new List<PresetHeader>();
 			while (i < phdrChunk.end) phdrList.Add(new PresetHeader(bytes, ref i));
-			presetHeaders = phdrList.ToArray();
 			i = phdrChunk.end;
 
 			// <pbag-ck> ; The Preset Index list
 			var pbagChunk = new Chunk(bytes, ref i);
 			var pbagList = new List<Bag>();
 			while (i < pbagChunk.end) pbagList.Add(new Bag(bytes, ref i));
-			presetBags = pbagList.ToArray();
 			i = pbagChunk.end;
 
 			// <pmod-ck> ; The Preset Modulator list
 			var pmodChunk = new Chunk(bytes, ref i);
 			var pmodList = new List<Modulator>();
 			while (i < pmodChunk.end) pmodList.Add(new Modulator(bytes, ref i));
-			presetModulators = pmodList.ToArray();
 			i = pmodChunk.end;
 
 			// <pgen-ck> ; The Preset Generator list
 			var pgenChunk = new Chunk(bytes, ref i);
 			var pgenList = new List<Generator>();
 			while (i < pgenChunk.end) pgenList.Add(new Generator(bytes, ref i));
-			presetGenerators = pgenList.ToArray();
 			i = pgenChunk.end;
 
 			// <inst-ck> ; The Instrument Names and Indices
 			var instChunk = new Chunk(bytes, ref i);
 			var instList = new List<InstrumentHeader>();
 			while (i < instChunk.end) instList.Add(new InstrumentHeader(bytes, ref i));
-			instrumentHeaders = instList.ToArray();
 			i = instChunk.end;
 
 			// <ibag-ck> ; The Instrument Index list
 			var ibagChunk = new Chunk(bytes, ref i);
 			var ibagList = new List<Bag>();
 			while (i < ibagChunk.end) ibagList.Add(new Bag(bytes, ref i));
-			instrumentBags = ibagList.ToArray();
 			i = ibagChunk.end;
 
 			// <imod-ck> ; The Instrument Modulator list
 			var imodChunk = new Chunk(bytes, ref i);
 			var imodList = new List<Modulator>();
 			while (i < imodChunk.end) imodList.Add(new Modulator(bytes, ref i));
-			instrumentModulators = imodList.ToArray();
 			i = imodChunk.end;
 
 			// <igen-ck> ; The Instrument Generator list
 			var igenChunk = new Chunk(bytes, ref i);
 			var igenList = new List<Generator>();
 			while (i < igenChunk.end) igenList.Add(new Generator(bytes, ref i));
-			instrumentGenerators = igenList.ToArray();
 			i = igenChunk.end;
 
 			// <shdr-ck> ; The Sample Headers 
@@ -194,47 +168,45 @@ namespace Midif.V3 {
 			presets = new Sf2Preset[phdrList.Count - 1];
 			UnityEngine.Debug.LogFormat("{0} presets", presets.Length);
 			for (int j = 0; j < presets.Length; j += 1) {
-				var phdr = phdrList[j];
 				presets[j] = new Sf2Preset();
-				presets[j].presetName = Trim(phdr.presetName);
-				presets[j].preset = phdr.preset;
-				presets[j].bank = phdr.bank;
+				presets[j].presetName = Trim(phdrList[j].presetName);
+				presets[j].preset = phdrList[j].preset;
+				presets[j].bank = phdrList[j].bank;
 
-				int instStart = phdr.presetBagNdx - phdrList[0].presetBagNdx;
-				int instCount = phdrList[j + 1].presetBagNdx - phdr.presetBagNdx;
-				UnityEngine.Debug.LogFormat("\tpreset {0}: {1} to {2} ({3} instruments) ", presets[j].presetName, phdr.presetBagNdx, phdrList[j + 1].presetBagNdx, instCount);
+				int instStart = phdrList[j].presetBagNdx - phdrList[0].presetBagNdx;
+				int instCount = phdrList[j + 1].presetBagNdx - phdrList[j].presetBagNdx;
+				UnityEngine.Debug.LogFormat("\tpreset {0}: {1} to {2} ({3} instruments) ", presets[j].presetName, phdrList[j].presetBagNdx, phdrList[j + 1].presetBagNdx, instCount);
 
-				int instGenStart = presetBags[phdr.presetBagNdx].genNdx;
-				int instGenEnd = presetBags[phdrList[j + 1].presetBagNdx].genNdx;
-				for (int k = instGenStart; k < instGenEnd; k += 1) {
-					UnityEngine.Debug.LogFormat("\t\tgen {0}: {1} - {2}", presetGenerators[k].gen, presetGenerators[k].amount.lo, presetGenerators[k].amount.hi);
-				}
-
-				var insts = new Sf2Instrument[instCount];
+				var instruments = new Sf2Instrument[instCount];
 				for (int k = 0; k < instCount; k += 1) {
-					var instHeader = instrumentHeaders[instStart + k];
-					insts[k] = new Sf2Instrument();
-					insts[k].instName = Trim(instHeader.instName);
+					instruments[k] = new Sf2Instrument();
+					instruments[k].instName = Trim(instList[instStart + k].instName);
 					
-					int zoneCount = instrumentHeaders[k + 1].instBagNdx - instHeader.instBagNdx;
-					UnityEngine.Debug.LogFormat("\t\tinstrument {0}: {1} to {2} ({3} zones) ", insts[k].instName, instHeader.instBagNdx, instrumentHeaders[k + 1].instBagNdx, zoneCount);
+					int zoneCount = instList[instStart + k + 1].instBagNdx - instList[instStart + k].instBagNdx;
+					UnityEngine.Debug.LogFormat("\t\tinstrument {0}: {1} to {2} ({3} zones) ", instruments[k].instName, instList[instStart + k].instBagNdx, instList[k + 1].instBagNdx, zoneCount);
+
+					int presetGenStart = pbagList[phdrList[j].presetBagNdx + k].genNdx;
+					int presetGenEnd = pbagList[phdrList[j].presetBagNdx + k + 1].genNdx;
+					for (int l = presetGenStart; l < presetGenEnd; l += 1) {
+						UnityEngine.Debug.LogFormat("\t\t\tpgen {0}: {3} ({1} - {2})", pgenList[l].gen, pgenList[l].amount.lo, pgenList[l].amount.hi, pgenList[l].amount.GetShort());
+					}
 
 					if (zoneCount < 0) continue;
-
-					int zoneGenStart = instrumentBags[instHeader.instBagNdx].genNdx;
-					int zoneGenEnd = instrumentBags[instrumentHeaders[k + 1].instBagNdx].genNdx;
-					for (int l = instGenStart; l < instGenEnd; l += 1) {
-						UnityEngine.Debug.LogFormat("\t\t\tgen {0}: {1} - {2}", instrumentGenerators[l].gen, instrumentGenerators[l].amount.lo, instrumentGenerators[l].amount.hi);
-					}
 
 					var zones = new Sf2Zone[zoneCount];
 					for (int l = 0; l < zoneCount; l += 1) {
 						zones[l] = new Sf2Zone();
-						
+						UnityEngine.Debug.LogFormat("\t\t\tzone {0}", l);
+
+						int instGenStart = ibagList[instList[instStart + k].instBagNdx + l].genNdx;
+						int instGenEnd = ibagList[instList[instStart + k].instBagNdx + l + 1].genNdx;
+						for (int m = instGenStart; m < instGenEnd; m += 1) {
+							UnityEngine.Debug.LogFormat("\t\t\t\tigen {0}: {3} ({1} - {2})", igenList[m].gen, igenList[m].amount.lo, igenList[m].amount.hi, igenList[m].amount.GetShort());
+						}
 					}
-					insts[k].zones = zones;
+					instruments[k].zones = zones;
 				}
-				presets[j].instruments = insts;
+				presets[j].instruments = instruments;
 			}
 		}
 

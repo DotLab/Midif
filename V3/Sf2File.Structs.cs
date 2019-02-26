@@ -103,10 +103,10 @@ namespace Midif.V3 {
 				public byte lo;
 				public byte hi;
 				public short GetShort() {
-					return (short)((sbyte)lo << 8 | hi);
+					return (short)((sbyte)hi << 8 | lo);
 				}
 				public ushort GetWord() {
-					return (ushort)(lo << 8 | hi);
+					return (ushort)(hi << 8 | lo);
 				}
 			}
 
