@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using Encoding = System.Text.Encoding;
 
 namespace Midif.V3 {
+	public sealed class Sf2Preset {
+
+	}
+
 	[System.Serializable]
 	public sealed partial class Sf2File {
 		// <ifil-ck> ; Refers to the version of the Sound Font RIFF file
@@ -30,25 +34,25 @@ namespace Midif.V3 {
 		public float[] samples;
 
 		// <phdr-ck> ; The Preset Headers
-		public PresetHeader[] PresetHeaders;
+		public PresetHeader[] presetHeaders;
 		// <pbag-ck> ; The Preset Index list
-		public Bag[] PresetBags;
+		public Bag[] presetBags;
 		// <pmod-ck> ; The Preset Modulator list
-		public Modulator[] PresetModulators;
+		public Modulator[] presetModulators;
 		// <pgen-ck> ; The Preset Generator list
-		public Generator[] PresetGenerators;
+		public Generator[] presetGenerators;
 
 		// <inst-ck> ; The Instrument Names and Indices
-		public InstrumentHeader[] InstrumentHeaders;
+		public InstrumentHeader[] instrumentHeaders;
 		// <ibag-ck> ; The Instrument Index list
-		public Bag[] InstrumentBags;
+		public Bag[] instrumentBags;
 		// <imod-ck> ; The Instrument Modulator list
-		public Modulator[] InstrumentModulators;
+		public Modulator[] instrumentModulators;
 		// <igen-ck> ; The Instrument Generator list
-		public Generator[] InstrumentGenerators;
+		public Generator[] instrumentGenerators;
 
 		// <shdr-ck> ; The Sample Headers
-		public SampleHeader[] SampleHeaders;
+		public SampleHeader[] sampleHeaders;
 
 		public Sf2File(byte[] bytes) {
 			int i = 0;
@@ -133,64 +137,65 @@ namespace Midif.V3 {
 			var phdrChunk = new Chunk(bytes, ref i);
 			var phdrList = new List<PresetHeader>();
 			while (i < phdrChunk.end) phdrList.Add(new PresetHeader(bytes, ref i));
-			PresetHeaders = phdrList.ToArray();
+			presetHeaders = phdrList.ToArray();
 			i = phdrChunk.end;
 
 			// <pbag-ck> ; The Preset Index list
 			var pbagChunk = new Chunk(bytes, ref i);
 			var pbagList = new List<Bag>();
 			while (i < pbagChunk.end) pbagList.Add(new Bag(bytes, ref i));
-			PresetBags = pbagList.ToArray();
+			presetBags = pbagList.ToArray();
 			i = pbagChunk.end;
 
 			// <pmod-ck> ; The Preset Modulator list
 			var pmodChunk = new Chunk(bytes, ref i);
 			var pmodList = new List<Modulator>();
 			while (i < pmodChunk.end) pmodList.Add(new Modulator(bytes, ref i));
-			PresetModulators = pmodList.ToArray();
+			presetModulators = pmodList.ToArray();
 			i = pmodChunk.end;
 
 			// <pgen-ck> ; The Preset Generator list
 			var pgenChunk = new Chunk(bytes, ref i);
 			var pgenList = new List<Generator>();
 			while (i < pgenChunk.end) pgenList.Add(new Generator(bytes, ref i));
-			PresetGenerators = pgenList.ToArray();
+			presetGenerators = pgenList.ToArray();
 			i = pgenChunk.end;
 
 			// <inst-ck> ; The Instrument Names and Indices
 			var instChunk = new Chunk(bytes, ref i);
 			var instList = new List<InstrumentHeader>();
 			while (i < instChunk.end) instList.Add(new InstrumentHeader(bytes, ref i));
-			InstrumentHeaders = instList.ToArray();
+			instrumentHeaders = instList.ToArray();
 			i = instChunk.end;
 
 			// <ibag-ck> ; The Instrument Index list
 			var ibagChunk = new Chunk(bytes, ref i);
 			var ibagList = new List<Bag>();
 			while (i < ibagChunk.end) ibagList.Add(new Bag(bytes, ref i));
-			InstrumentBags = ibagList.ToArray();
+			instrumentBags = ibagList.ToArray();
 			i = ibagChunk.end;
 
 			// <imod-ck> ; The Instrument Modulator list
 			var imodChunk = new Chunk(bytes, ref i);
 			var imodList = new List<Modulator>();
 			while (i < imodChunk.end) imodList.Add(new Modulator(bytes, ref i));
-			InstrumentModulators = imodList.ToArray();
+			instrumentModulators = imodList.ToArray();
 			i = imodChunk.end;
 
 			// <igen-ck> ; The Instrument Generator list
 			var igenChunk = new Chunk(bytes, ref i);
 			var igenList = new List<Generator>();
 			while (i < igenChunk.end) igenList.Add(new Generator(bytes, ref i));
-			InstrumentGenerators = igenList.ToArray();
+			instrumentGenerators = igenList.ToArray();
 			i = igenChunk.end;
 
 			// <shdr-ck> ; The Sample Headers 
 			var shdrChunk = new Chunk(bytes, ref i);
 			var shdrList = new List<SampleHeader>();
 			while (i < shdrChunk.end) shdrList.Add(new SampleHeader(bytes, ref i));
-			SampleHeaders = shdrList.ToArray();
+			sampleHeaders = shdrList.ToArray();
 			UnityEngine.Debug.Log(shdrChunk.id);
+			// compile
 		}
 	}
 }
