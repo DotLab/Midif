@@ -27,12 +27,14 @@ namespace Midif.V3 {
 
 		// [<smpl-ck>] ; The Digital Audio Samples for the upper 16 bits
 		// [<sm24-ck>] ; The Digital Audio Samples for the lower 8 bits
-		public float[] data;
+		private float[] data;
 
 		// <shdr-ck> ; The Sample Headers
-		public SampleHeader[] sampleHeaders;
+		private SampleHeader[] sampleHeaders;
 
-		public Sf2Preset[] presets;
+		private Sf2Preset[] presets;
+
+		public Sf2Preset p;
 
 		public Sf2File(byte[] bytes) {
 			int i = 0;
@@ -165,48 +167,80 @@ namespace Midif.V3 {
 			UnityEngine.Debug.Log(shdrChunk.id);
 
 			// compile
+			int instantiatedSampleCount = 0;
 			presets = new Sf2Preset[phdrList.Count - 1];
 			UnityEngine.Debug.LogFormat("{0} presets", presets.Length);
+
 			for (int j = 0; j < presets.Length; j += 1) {
 				presets[j] = new Sf2Preset();
 				presets[j].presetName = Trim(phdrList[j].presetName);
 				presets[j].preset = phdrList[j].preset;
 				presets[j].bank = phdrList[j].bank;
 
+				var instrumentList = new List<Sf2Instrument>();
+
 				int pZoneCount = phdrList[j + 1].presetBagNdx - phdrList[j].presetBagNdx;
-				UnityEngine.Debug.LogFormat("\tpreset {0}: {1} to {2} ({3} zones) ", presets[j].presetName, phdrList[j].presetBagNdx, phdrList[j + 1].presetBagNdx, pZoneCount);
+				int pGlobalZoneGenStart = -1;
+				int pGlobalZoneGenEnd = -1;
+				// UnityEngine.Debug.LogFormat("\tpreset {0}: ({1} zones) ", presets[j].presetName, pZoneCount);
 				for (int k = 0; k < pZoneCount; k += 1) {
 					int pZoneGenStart = pbagList[phdrList[j].presetBagNdx + k].genNdx;
 					int pZoneGenEnd = pbagList[phdrList[j].presetBagNdx + k + 1].genNdx;
 
-					int instrumentIndex = -1;
-					for (int l = pZoneGenStart; l < pZoneGenEnd; l += 1) {
-						UnityEngine.Debug.LogFormat("\t\t\tpgen {0}: {3} ({1} - {2})", pgenList[l].gen, pgenList[l].amount.lo, pgenList[l].amount.hi, pgenList[l].amount.GetShort());
-						if (pgenList[l].gen == GeneratorType.Instrument) instrumentIndex = pgenList[l].amount.GetShort();
+					// A global zone is determined by the fact that the last generator in the list is not an Instrument generator.
+					if (pgenList[pZoneGenEnd - 1].gen != GeneratorType.Instrument) {
+						pGlobalZoneGenStart = pZoneGenStart;
+						pGlobalZoneGenEnd = pZoneGenEnd;
+						// UnityEngine.Debug.LogFormat("\t\tglobal preset zone");
+						continue;
 					}
+					
+					int instrumentIndex = pgenList[pZoneGenEnd - 1].amount.GetShort();
+					var instrument = new Sf2Instrument();
+					instrumentList.Add(instrument);
+					instrument.instName = instList[instrumentIndex].instName;
+					var sampleList = new List<Sf2Sample>();
 
-					if (instrumentIndex == -1) {  // not an instrument, but a global preset zone
-						UnityEngine.Debug.LogFormat("\t\tglobal preset zone");
-					} else {
-						int iZoneCount = instList[instrumentIndex + 1].instBagNdx - instList[instrumentIndex].instBagNdx;
-						UnityEngine.Debug.LogFormat("\t\tinstrument {0}: {1} to {2} ({3} zones) ", Trim(instList[instrumentIndex].instName), instList[instrumentIndex].instBagNdx, instList[instrumentIndex + 1].instBagNdx, iZoneCount);
-						for (int l = 0; l < iZoneCount; l += 1) {
-							int iZoneGenStart = ibagList[instList[instrumentIndex].instBagNdx + l].genNdx;
-							int iZoneGenEnd = ibagList[instList[instrumentIndex].instBagNdx + l + 1].genNdx;
+					int iZoneCount = instList[instrumentIndex + 1].instBagNdx - instList[instrumentIndex].instBagNdx;
+					int iGlobalZoneGenStart = -1;
+					int iGlobalZoneGenEnd = -1;
+					 UnityEngine.Debug.LogFormat("\t\tinstrument {0}: ({1} zones) ", Trim(instList[instrumentIndex].instName), iZoneCount);
+					for (int l = 0; l < iZoneCount; l += 1) {
+						int iZoneGenStart = ibagList[instList[instrumentIndex].instBagNdx + l].genNdx;
+						int iZoneGenEnd = ibagList[instList[instrumentIndex].instBagNdx + l + 1].genNdx;
 
-							int sampleId = -1;
-							for (int m = iZoneGenStart; m < iZoneGenEnd; m += 1) {
-								UnityEngine.Debug.LogFormat("\t\t\t\tigen {0}: {3} ({1} - {2})", igenList[m].gen, igenList[m].amount.lo, igenList[m].amount.hi, igenList[m].amount.GetShort());
-								if (igenList[m].gen == GeneratorType.SampleID) sampleId = igenList[m].amount.GetShort();
-							}
-
-							if (sampleId == -1) {  // not a sample, but a global instrument zone
-								UnityEngine.Debug.LogFormat("\t\t\tglobal instrument zone");
-							} else {
-								UnityEngine.Debug.LogFormat("\t\t\tsample {0}", sampleId);
-							}
+						// A global zone is determined by the fact that the last generator in the list is not a sampleID generator.
+						if (igenList[iZoneGenEnd - 1].gen != GeneratorType.SampleID) {
+							iGlobalZoneGenStart = iZoneGenStart;
+							iGlobalZoneGenEnd = iZoneGenEnd;
+							// UnityEngine.Debug.LogFormat("\t\t\tglobal instrument zone");
+							continue;
 						}
+
+						int sampleId = igenList[iZoneGenEnd - 1].amount.GetShort();
+						var sample = new Sf2Sample();
+						sampleList.Add(sample);
+						sample.header = shdrList[sampleId];
+						for (int m = iGlobalZoneGenStart; m < iGlobalZoneGenEnd; m += 1) sample.Set(igenList[m]);
+						for (int m = iZoneGenStart; m < iZoneGenEnd; m += 1) sample.Set(igenList[m]);
+//						for (int m = pGlobalZoneGenStart; m < pGlobalZoneGenEnd; m += 1) sample.Add(pgenList[m]);
+//						for (int m = pZoneGenStart; m < pZoneGenEnd; m += 1) sample.Add(pgenList[m]);
+						instantiatedSampleCount += 1;
+
+						UnityEngine.Debug.LogFormat("\t\t\tsample {0}: {1} - {2} at {3} - {4}", sampleId, sample.keyRangeLo, sample.keyRangeHi, sample.velRangeLo, sample.velRangeHi);
 					}
+					
+					instrument.samples = sampleList.ToArray();
+				}
+
+				presets[j].instruments = instrumentList.ToArray();
+			}
+			p = presets[0];
+			UnityEngine.Debug.Log(instantiatedSampleCount);
+
+			for (byte note = 0; note < 127; note += 1) {
+				for (byte velocity = 0; velocity < 127; velocity += 1) {
+					UnityEngine.Debug.LogFormat("{0} {1}: {2}", note, velocity, presets[0].CountActivations(note, velocity));
 				}
 			}
 		}
@@ -223,6 +257,18 @@ namespace Midif.V3 {
 		public int bank;
 
 		public Sf2Instrument[] instruments;
+
+		public int CountActivations(byte note, byte velocity) {
+			int count = 0;
+			foreach (var instrument in instruments) {
+				foreach (var sample in instrument.samples) {
+					if (sample.keyRangeLo <= note && note <= sample.keyRangeHi && sample.velRangeLo <= velocity && velocity <= sample.velRangeHi) {
+						count += 1;
+					}
+				}
+			}
+			return count;
+		}
 	}
 
 	[System.Serializable]
@@ -234,6 +280,8 @@ namespace Midif.V3 {
 
 	[System.Serializable]
 	public sealed class Sf2Sample {
+		public Sf2File.SampleHeader header;
+
 		public short startAddrsOffset;
 		public short endAddrsOffset;
 		public short startloopAddrsOffset;
@@ -272,10 +320,10 @@ namespace Midif.V3 {
 		public short keynumToVolEnvHold;
 		public short keynumToVolEnvDecay;
 		public short instrument;
-		public byte keyRangeLo;
-		public byte keyRangeHi = 127;
-		public byte velRangeLo;
-		public byte velRangeHi = 127;
+		public short keyRangeLo;
+		public short keyRangeHi = 127;
+		public short velRangeLo;
+		public short velRangeHi = 127;
 		public short startloopAddrsCoarseOffset;
 		public short keynum = -1;
 		public short velocity = -1;
@@ -289,7 +337,7 @@ namespace Midif.V3 {
 		public short exclusiveClass;
 		public short overridingRootKey = -1;
 
-		public void ApplyGenerator(Sf2File.Generator g) {
+		public void Set(Sf2File.Generator g) {
 			switch (g.gen) {
 			case Sf2File.GeneratorType.StartAddrsOffset:           startAddrsOffset = g.amount.GetShort(); return;
 			case Sf2File.GeneratorType.EndAddrsOffset:             endAddrsOffset = g.amount.GetShort(); return;
@@ -329,8 +377,8 @@ namespace Midif.V3 {
 			case Sf2File.GeneratorType.KeynumToVolEnvHold:         keynumToVolEnvHold = g.amount.GetShort(); return;
 			case Sf2File.GeneratorType.KeynumToVolEnvDecay:        keynumToVolEnvDecay = g.amount.GetShort(); return;
 			case Sf2File.GeneratorType.Instrument:                 instrument = g.amount.GetShort(); return;
-			case Sf2File.GeneratorType.KeyRange:                   keyRangeLo = g.amount.lo; keyRangeHi = g.amount.hi; return;
-			case Sf2File.GeneratorType.VelRange:                   velRangeLo = g.amount.lo; velRangeHi = g.amount.hi; return;
+			case Sf2File.GeneratorType.KeyRange:                   keyRangeLo = (sbyte)g.amount.lo; keyRangeHi = (sbyte)g.amount.hi; return;
+			case Sf2File.GeneratorType.VelRange:                   velRangeLo = (sbyte)g.amount.lo; velRangeHi = (sbyte)g.amount.hi; return;
 			case Sf2File.GeneratorType.StartloopAddrsCoarseOffset: startloopAddrsCoarseOffset = g.amount.GetShort(); return;
 			case Sf2File.GeneratorType.Keynum:                     keynum = g.amount.GetShort(); return;
 			case Sf2File.GeneratorType.Velocity:                   velocity = g.amount.GetShort(); return;
@@ -343,6 +391,63 @@ namespace Midif.V3 {
 			case Sf2File.GeneratorType.ScaleTuning:                scaleTuning = g.amount.GetShort(); return;
 			case Sf2File.GeneratorType.ExclusiveClass:             exclusiveClass = g.amount.GetShort(); return;
 			case Sf2File.GeneratorType.OverridingRootKey:          overridingRootKey = g.amount.GetShort(); return;
+			}
+		}
+
+		public void Add(Sf2File.Generator g) {
+			switch (g.gen) {
+			case Sf2File.GeneratorType.StartAddrsOffset:           startAddrsOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.EndAddrsOffset:             endAddrsOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.StartloopAddrsOffset:       startloopAddrsOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.EndloopAddrsOffset:         endloopAddrsOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.StartAddrsCoarseOffset:     startAddrsCoarseOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ModLfoToPitch:              modLfoToPitch += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.VibLfoToPitch:              vibLfoToPitch += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ModEnvToPitch:              modEnvToPitch += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.InitialFilterFc:            initialFilterFc += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.InitialFilterQ:             initialFilterQ += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ModLfoToFilterFc:           modLfoToFilterFc += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ModEnvToFilterFc:           modEnvToFilterFc += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.EndAddrsCoarseOffset:       endAddrsCoarseOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ModLfoToVolume:             modLfoToVolume += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ChorusEffectsSend:          chorusEffectsSend += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ReverbEffectsSend:          reverbEffectsSend += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.Pan:                        pan += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.DelayModLFO:                delayModLFO += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.FreqModLFO:                 freqModLFO += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.DelayVibLFO:                delayVibLFO += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.FreqVibLFO:                 freqVibLFO += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.DelayModEnv:                delayModEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.AttackModEnv:               attackModEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.HoldModEnv:                 holdModEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.DecayModEnv:                decayModEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.SustainModEnv:              sustainModEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ReleaseModEnv:              releaseModEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.KeynumToModEnvHold:         keynumToModEnvHold += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.KeynumToModEnvDecay:        keynumToModEnvDecay += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.DelayVolEnv:                delayVolEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.AttackVolEnv:               attackVolEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.HoldVolEnv:                 holdVolEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.DecayVolEnv:                decayVolEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.SustainVolEnv:              sustainVolEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ReleaseVolEnv:              releaseVolEnv += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.KeynumToVolEnvHold:         keynumToVolEnvHold += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.KeynumToVolEnvDecay:        keynumToVolEnvDecay += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.Instrument:                 instrument += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.KeyRange:                   keyRangeLo += (sbyte)g.amount.lo; keyRangeHi += (sbyte)g.amount.hi; return;
+			case Sf2File.GeneratorType.VelRange:                   velRangeLo += (sbyte)g.amount.lo; velRangeHi += (sbyte)g.amount.hi; return;
+			case Sf2File.GeneratorType.StartloopAddrsCoarseOffset: startloopAddrsCoarseOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.Keynum:                     keynum += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.Velocity:                   velocity += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.InitialAttenuation:         initialAttenuation += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.EndloopAddrsCoarseOffset:   endloopAddrsCoarseOffset += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.CoarseTune:                 coarseTune += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.FineTune:                   fineTune += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.SampleID:                   sampleID += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.SampleModes:                sampleModes += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ScaleTuning:                scaleTuning += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.ExclusiveClass:             exclusiveClass += g.amount.GetShort(); return;
+			case Sf2File.GeneratorType.OverridingRootKey:          overridingRootKey += g.amount.GetShort(); return;
 			}
 		}
 	}
