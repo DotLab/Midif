@@ -18,7 +18,7 @@ namespace Midif.V3 {
 		}
 
 		// <phdr-rec> -> struct sfPresetHeader
-		public class PresetHeader {
+		class PresetHeader {
 			// CHAR achPresetName[20];
 			public string presetName;
 			// WORD wPreset;
@@ -48,7 +48,7 @@ namespace Midif.V3 {
 
 		// <pbag-rec> -> struct sfPresetBag
 		// <ibag-rec> -> struct sfInstBag
-		public class Bag {
+		class Bag {
 			// WORD wGenNdx;
 			// WORD wInstGenNdx;
 			public ushort genNdx;
@@ -64,7 +64,7 @@ namespace Midif.V3 {
 
 		// <pmod-rec> -> struct sfModList
 		// <imod-rec> -> struct sfInstModList
-		public class Modulator {
+		class Modulator {
 			// Modulator Transform Enumerators
 			public enum Transform {
 				Linear = 0,
@@ -110,7 +110,7 @@ namespace Midif.V3 {
 		}
 
 		// <inst-rec> -> struct sfInst
-		public class InstrumentHeader {
+		class InstrumentHeader {
 			// CHAR achInstName[20];
 			public string instName;
 			// WORD wInstBagNdx;

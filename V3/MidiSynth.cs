@@ -1,38 +1,38 @@
 ﻿using Math = System.Math;
 
 namespace Midif.V3 {
-	public sealed class MidiSynthTable {
-		public const float VelcRecip = 1f / 127f;
+	public sealed class MidiSynth {
+		public sealed class SynthTable {
+			public const float VelcRecip = 1f / 127f;
 
-		public const float Pi = 3.14159265f;
-		public const float Pi2 = Pi * 2;
+			public const float Pi = 3.14159265f;
+			public const float Pi2 = Pi * 2;
 
-		public readonly float[] note2Freq = new float[128];
-		public readonly float[] bend2Pitch = new float[128];
+			public readonly float[] note2Freq = new float[128];
+			public readonly float[] bend2Pitch = new float[128];
 
-		public readonly float[] volm2Gain = new float[128];
-		public readonly float[] pan2Left = new float[128];
-		public readonly float[] pan2Right = new float[128];
+			public readonly float[] volm2Gain = new float[128];
+			public readonly float[] pan2Left = new float[128];
+			public readonly float[] pan2Right = new float[128];
 
-		public MidiSynthTable() {
-			for (int i = 0; i < 128; i++) {
-				note2Freq[i] = (float)(440 * Math.Pow(2, (i - 69) / 12.0));
-				bend2Pitch[i] = (float)Math.Pow(2, 2 * ((i - 64) / 127) / 12.0);
+			public SynthTable() {
+				for (int i = 0; i < 128; i++) {
+					note2Freq[i] = (float)(440 * Math.Pow(2, (i - 69) / 12.0));
+					bend2Pitch[i] = (float)Math.Pow(2, 2 * ((i - 64) / 127) / 12.0);
 
-				volm2Gain[i] = (float)Deci2Gain(40.0 * Math.Log10(i / 127.0));
-				pan2Left[i] = (float)Deci2Gain(20.0 * Math.Log10(Math.Cos(Math.PI / 2 * (i / 127.0))));
-				pan2Right[i] = (float)Deci2Gain(20.0 * Math.Log10(Math.Sin(Math.PI / 2 * (i / 127.0))));
+					volm2Gain[i] = (float)Deci2Gain(40.0 * Math.Log10(i / 127.0));
+					pan2Left[i] = (float)Deci2Gain(20.0 * Math.Log10(Math.Cos(Math.PI / 2 * (i / 127.0))));
+					pan2Right[i] = (float)Deci2Gain(20.0 * Math.Log10(Math.Sin(Math.PI / 2 * (i / 127.0))));
+				}
+			}
+
+			public static double Deci2Gain (double db) {
+				return Math.Pow(10.0, (db / 10.0));
 			}
 		}
 
-		public static double Deci2Gain (double db) {
-			return Math.Pow(10.0, (db / 10.0));
-		}
-	}
-
-	public sealed class MidiSynth {
 		public sealed class EnvelopeConfig {
-			public readonly MidiSynthTable table;
+			public readonly SynthTable table;
 			// 0 - 127
 			public readonly byte[] levels = new byte[4];
 			// seconds
@@ -41,7 +41,7 @@ namespace Midif.V3 {
 			public readonly float[] gains = new float[4];
 			public readonly float[] gainsPerSecond = new float[4];
 
-			public EnvelopeConfig(MidiSynthTable table, byte l1, float d1, byte l2, float d2, byte l3, float d3, byte l4, float d4) {
+			public EnvelopeConfig(SynthTable table, byte l1, float d1, byte l2, float d2, byte l3, float d3, byte l4, float d4) {
 				this.table = table;
 				levels[0] = l1;
 				levels[1] = l2;
@@ -151,7 +151,7 @@ namespace Midif.V3 {
 			public int next;
 		}
 
-		public MidiSynthTable table;
+		public SynthTable table;
 
 		public readonly float sampleRate;
 		public readonly float sampleRateRecip;
@@ -170,7 +170,7 @@ namespace Midif.V3 {
 
 		public EnvelopeConfig envelopeConfig;
 
-		public MidiSynth(MidiSynthTable table, float sampleRate, int voiceCount) {
+		public MidiSynth(SynthTable table, float sampleRate, int voiceCount) {
 			WaveVisualizer.Data = new float[(int)sampleRate];
 
 			this.table = table;
@@ -208,7 +208,7 @@ namespace Midif.V3 {
 		}
 
 		public void SetVolume(float volume) {
-			masterGain = (float)MidiSynthTable.Deci2Gain(volume);
+			masterGain = (float)SynthTable.Deci2Gain(volume);
 		}
 
 		public void NoteOn(int track, byte channel, byte note, byte velocity) {
@@ -300,7 +300,7 @@ namespace Midif.V3 {
 				for (int j = firstActiveVoice; j != -1; j = voices[j].next) {
 					 float envelopeGain = voices[j].envelope.gain;
 					voices[j].envelope.AdvanceTime(sampleRateRecip);
-					float value = envelopeGain * (float)Math.Sin(voices[j].time * voices[j].freq * MidiSynthTable.Pi2);
+					float value = envelopeGain * (float)Math.Sin(voices[j].time * voices[j].freq * SynthTable.Pi2);
 					left += value * voices[j].gainLeft;
 					right += value * voices[j].gainRight;
 					voices[j].time += sampleRateRecip;
@@ -326,7 +326,7 @@ namespace Midif.V3 {
 			float channelGainRight=  channelGain * table.pan2Right[pan];
 
 			// float gain = table.volm2Gain[voices[i].velocity];
-			float gain = voices[i].velocity * MidiSynthTable.VelcRecip;
+			float gain = voices[i].velocity * SynthTable.VelcRecip;
 			// float gain = 1;
 			voices[i].gainLeft = channelGainLeft * gain;
 			voices[i].gainRight = channelGainRight * gain;
@@ -343,7 +343,7 @@ namespace Midif.V3 {
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel) {
 					// float gain = table.volm2Gain[voices[i].velocity];
-					float gain = voices[i].velocity * MidiSynthTable.VelcRecip;
+					float gain = voices[i].velocity * SynthTable.VelcRecip;
 					// float gain = 1;
 					voices[i].gainLeft = channelGainLeft * gain;
 					voices[i].gainRight = channelGainRight * gain;
