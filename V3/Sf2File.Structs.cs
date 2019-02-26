@@ -1,5 +1,4 @@
 ﻿using Unsaf;
-using System;
 
 namespace Midif.V3 {
 	public sealed partial class Sf2File {
@@ -19,7 +18,7 @@ namespace Midif.V3 {
 		}
 
 		// <phdr-rec> -> struct sfPresetHeader
-		[Serializable]
+		[System.Serializable]
 		public class PresetHeader {
 			// CHAR achPresetName[20];
 			public string presetName;
@@ -29,7 +28,6 @@ namespace Midif.V3 {
 			public ushort bank;
 			// WORD wPresetBagNdx;
 			public ushort presetBagNdx;
-
 			// DWORD dwLibrary;
 			public uint library;
 			// DWORD dwGenre;
@@ -51,7 +49,7 @@ namespace Midif.V3 {
 
 		// <pbag-rec> -> struct sfPresetBag
 		// <ibag-rec> -> struct sfInstBag
-		[Serializable]
+		[System.Serializable]
 		public class Bag {
 			// WORD wGenNdx;
 			// WORD wInstGenNdx;
@@ -68,7 +66,7 @@ namespace Midif.V3 {
 
 		// <pmod-rec> -> struct sfModList
 		// <imod-rec> -> struct sfInstModList
-		[Serializable]
+		[System.Serializable]
 		public class Modulator {
 			// Modulator Transform Enumerators
 			public enum Transform {
@@ -98,9 +96,9 @@ namespace Midif.V3 {
 
 		// <pgen-rec> -> struct sfGenList
 		// <igen-rec> -> struct sfInstGenList
-		[Serializable]
+		[System.Serializable]
 		public class Generator {
-			[Serializable]
+			[System.Serializable]
 			public struct Amount {
 				public byte lo;
 				public byte hi;
@@ -115,17 +113,17 @@ namespace Midif.V3 {
 			// SFGenerator sfGenOper;
 			public GeneratorType gen;
 			// genAmountType genAmount; 
-			public Amount genAmount;
+			public Amount amount;
 
 			public Generator(byte[] bytes, ref int i) {
 				gen = (GeneratorType)Bit.ReadUInt16(bytes, ref i);
-				genAmount.lo = Bit.ReadByte(bytes, ref i);
-				genAmount.hi = Bit.ReadByte(bytes, ref i);
+				amount.lo = Bit.ReadByte(bytes, ref i);
+				amount.hi = Bit.ReadByte(bytes, ref i);
 			}
 		}
 
 		// <inst-rec> -> struct sfInst
-		[Serializable]
+		[System.Serializable]
 		public class InstrumentHeader {
 			// CHAR achInstName[20];
 			public string instName;
@@ -139,7 +137,7 @@ namespace Midif.V3 {
 		}
 
 		// <shdr-rec> -> struct sfSample
-		[Serializable]
+		[System.Serializable]
 		public class SampleHeader {
 			// Sample Link Enumerators
 			public enum SampleLink {
