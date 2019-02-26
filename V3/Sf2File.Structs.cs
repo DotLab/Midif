@@ -18,7 +18,6 @@ namespace Midif.V3 {
 		}
 
 		// <phdr-rec> -> struct sfPresetHeader
-		[System.Serializable]
 		public class PresetHeader {
 			// CHAR achPresetName[20];
 			public string presetName;
@@ -49,7 +48,6 @@ namespace Midif.V3 {
 
 		// <pbag-rec> -> struct sfPresetBag
 		// <ibag-rec> -> struct sfInstBag
-		[System.Serializable]
 		public class Bag {
 			// WORD wGenNdx;
 			// WORD wInstGenNdx;
@@ -66,7 +64,6 @@ namespace Midif.V3 {
 
 		// <pmod-rec> -> struct sfModList
 		// <imod-rec> -> struct sfInstModList
-		[System.Serializable]
 		public class Modulator {
 			// Modulator Transform Enumerators
 			public enum Transform {
@@ -77,7 +74,7 @@ namespace Midif.V3 {
 			// SFModulator sfModSrcOper;
 			public ModulatorType modSrc;
 			// SFGenerator sfModDestOper;
-			public GeneratorType modDest;
+			public byte modDest;
 			// SHORT modAmount;
 			public short modAmount;
 			// SFModulator sfModAmtSrcOper;
@@ -87,7 +84,7 @@ namespace Midif.V3 {
 
 			public Modulator(byte[] bytes, ref int i) {
 				modSrc = new ModulatorType(bytes, ref i);
-				modDest = (GeneratorType)Bit.ReadUInt16(bytes, ref i);
+				modDest = (byte)Bit.ReadUInt16(bytes, ref i);
 				modAmount = Bit.ReadInt16(bytes, ref i);
 				modAmtSrc = new ModulatorType(bytes, ref i);
 				modTrans = (Transform)Bit.ReadUInt16(bytes, ref i);
@@ -96,34 +93,23 @@ namespace Midif.V3 {
 
 		// <pgen-rec> -> struct sfGenList
 		// <igen-rec> -> struct sfInstGenList
-		[System.Serializable]
 		public class Generator {
-			[System.Serializable]
-			public struct Amount {
-				public byte lo;
-				public byte hi;
-				public short GetShort() {
-					return (short)((sbyte)hi << 8 | lo);
-				}
-				public ushort GetWord() {
-					return (ushort)(hi << 8 | lo);
-				}
-			}
-
 			// SFGenerator sfGenOper;
-			public GeneratorType gen;
+			public byte gen;
 			// genAmountType genAmount; 
-			public Amount amount;
+			public byte lo;
+			public byte hi;
+			public short amount;
 
 			public Generator(byte[] bytes, ref int i) {
-				gen = (GeneratorType)Bit.ReadUInt16(bytes, ref i);
-				amount.lo = Bit.ReadByte(bytes, ref i);
-				amount.hi = Bit.ReadByte(bytes, ref i);
+				gen = (byte)Bit.ReadUInt16(bytes, ref i);
+				lo = Bit.ReadByte(bytes, ref i);
+				hi = Bit.ReadByte(bytes, ref i);
+				amount = (short)((sbyte)hi << 8 | lo);
 			}
 		}
 
 		// <inst-rec> -> struct sfInst
-		[System.Serializable]
 		public class InstrumentHeader {
 			// CHAR achInstName[20];
 			public string instName;
@@ -137,7 +123,6 @@ namespace Midif.V3 {
 		}
 
 		// <shdr-rec> -> struct sfSample
-		[System.Serializable]
 		public class SampleHeader {
 			// Sample Link Enumerators
 			public enum SampleLink {
@@ -187,7 +172,6 @@ namespace Midif.V3 {
 		}
 
 		// Modulator Source Enumerators
-		[System.Serializable]
 		public class ModulatorType {
 			public enum Continuity {
 				Linear = 0,
@@ -245,59 +229,67 @@ namespace Midif.V3 {
 		}
 
 		// Generator and Modulator Destination Enumerators
-		public enum GeneratorType {
-			StartAddrsOffset = 0,
-			EndAddrsOffset = 1,
-			StartloopAddrsOffset = 2,
-			EndloopAddrsOffset = 3,
-			StartAddrsCoarseOffset = 4,
-			ModLfoToPitch = 5,
-			VibLfoToPitch = 6,
-			ModEnvToPitch = 7,
-			InitialFilterFc = 8,
-			InitialFilterQ = 9,
-			ModLfoToFilterFc = 10,
-			ModEnvToFilterFc = 11,
-			EndAddrsCoarseOffset = 12,
-			ModLfoToVolume = 13,
-			ChorusEffectsSend = 15,
-			ReverbEffectsSend = 16,
-			Pan = 17,
-			DelayModLFO = 21,
-			FreqModLFO = 22,
-			DelayVibLFO = 23,
-			FreqVibLFO = 24,
-			DelayModEnv = 25,
-			AttackModEnv = 26,
-			HoldModEnv = 27,
-			DecayModEnv = 28,
-			SustainModEnv = 29,
-			ReleaseModEnv = 30,
-			KeynumToModEnvHold = 31,
-			KeynumToModEnvDecay = 32,
-			DelayVolEnv = 33,
-			AttackVolEnv = 34,
-			HoldVolEnv = 35,
-			DecayVolEnv = 36,
-			SustainVolEnv = 37,
-			ReleaseVolEnv = 38,
-			KeynumToVolEnvHold = 39,
-			KeynumToVolEnvDecay = 40,
-			Instrument = 41,
-			KeyRange = 43,
-			VelRange = 44,
-			StartloopAddrsCoarseOffset = 45,
-			Keynum = 46,
-			Velocity = 47,
-			InitialAttenuation = 48,
-			EndloopAddrsCoarseOffset = 50,
-			CoarseTune = 51,
-			FineTune = 52,
-			SampleID = 53,
-			SampleModes = 54,
-			ScaleTuning = 56,
-			ExclusiveClass = 57,
-			OverridingRootKey = 58,
+		public static class GeneratorType {
+			public const int StartAddrsOffset = 0;             // Sample start address offset (0 - 32767)
+			public const int EndAddrsOffset = 1;               // Sample end address offset (-32767 - 0)
+			public const int StartloopAddrsOffset = 2;         // Sample loop start address offset (-32767 - 32767)
+			public const int EndloopAddrsOffset = 3;           // Sample loop end address offset (-32767 - 32767)
+			public const int StartAddrsCoarseOffset = 4;       // Sample start address coarse offset (X 32768)
+			public const int ModLfoToPitch = 5;                // Modulation LFO to pitch
+			public const int VibLfoToPitch = 6;                // Vibrato LFO to pitch
+			public const int ModEnvToPitch = 7;                // Modulation envelope to pitch
+			public const int InitialFilterFc = 8;              // Filter cutoff
+			public const int InitialFilterQ = 9;               // Filter Q
+			public const int ModLfoToFilterFc = 10;            // Modulation LFO to filter cutoff
+			public const int ModEnvToFilterFc = 11;            // Modulation envelope to filter cutoff
+			public const int EndAddrsCoarseOffset = 12;        // Sample end address coarse offset (X 32768)
+			public const int ModLfoToVolume = 13;              // Modulation LFO to volume
+  			// Unused
+			public const int ChorusEffectsSend = 15;           // Chorus send amount
+			public const int ReverbEffectsSend = 16;           // Reverb send amount
+			public const int Pan = 17;                         // Stereo panning
+			// Unused
+			// Unused
+			// Unused
+			public const int DelayModLFO = 21;                 // Modulation LFO delay
+			public const int FreqModLFO = 22;                  // Modulation LFO frequency
+			public const int DelayVibLFO = 23;                 // Vibrato LFO delay
+			public const int FreqVibLFO = 24;                  // Vibrato LFO frequency
+			public const int DelayModEnv = 25;                 // Modulation envelope delay
+			public const int AttackModEnv = 26;                // Modulation envelope attack
+			public const int HoldModEnv = 27;                  // Modulation envelope hold
+			public const int DecayModEnv = 28;                 // Modulation envelope decay
+			public const int SustainModEnv = 29;               // Modulation envelope sustain
+			public const int ReleaseModEnv = 30;               // Modulation envelope release
+			public const int KeynumToModEnvHold = 31;          // Key to modulation envelope hold
+			public const int KeynumToModEnvDecay = 32;         // Key to modulation envelope decay
+			public const int DelayVolEnv = 33;                 // Volume envelope delay
+			public const int AttackVolEnv = 34;                // Volume envelope attack
+			public const int HoldVolEnv = 35;                  // Volume envelope hold
+			public const int DecayVolEnv = 36;                 // Volume envelope decay
+			public const int SustainVolEnv = 37;               // Volume envelope sustain
+			public const int ReleaseVolEnv = 38;               // Volume envelope release
+			public const int KeynumToVolEnvHold = 39;          // Key to volume envelope hold
+			public const int KeynumToVolEnvDecay = 40;         // Key to volume envelope decay
+			public const int Instrument = 41;                  // Instrument ID (shouldn't be set by user)
+			// Reserved
+			public const int KeyRange = 43;                    // MIDI note range
+			public const int VelRange = 44;                    // MIDI velocity range
+			public const int StartloopAddrsCoarseOffset = 45;  // Sample start loop address coarse offset (X 32768)
+			public const int Keynum = 46;                      // Fixed MIDI note number
+			public const int Velocity = 47;                    // Fixed MIDI velocity value
+			public const int InitialAttenuation = 48;          // Initial volume attenuation
+			// Reserved
+			public const int EndloopAddrsCoarseOffset = 50;    // Sample end loop address coarse offset (X 32768)
+			public const int CoarseTune = 51;                  // Coarse tuning
+			public const int FineTune = 52;                    // Fine tuning
+			public const int SampleID = 53;                    // Sample ID (shouldn't be set by user)
+			public const int SampleModes = 54;                 // Sample mode flags
+			// Reserved
+			public const int ScaleTuning = 56;                 // Scale tuning
+			public const int ExclusiveClass = 57;              // Exclusive class number
+			public const int OverridingRootKey = 58;           // Sample root note override
+			public const int Last = 59;
 		}
 	}
 }
