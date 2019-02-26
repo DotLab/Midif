@@ -27,7 +27,7 @@ namespace Midif.V3 {
 
 		// [<smpl-ck>] ; The Digital Audio Samples for the upper 16 bits
 		// [<sm24-ck>] ; The Digital Audio Samples for the lower 8 bits
-		public float[] samples;
+		public float[] data;
 
 		// <shdr-ck> ; The Sample Headers
 		public SampleHeader[] sampleHeaders;
@@ -81,24 +81,24 @@ namespace Midif.V3 {
 			if (sdtaChunk.size > 0) {
 				// [<smpl-ck>] ; The Digital Audio Samples for the upper 16 bits 
 				var smplChunk = new Chunk(bytes, ref i);
-				int[] intsamples = new int[smplChunk.size >> 1];
-				for (int j = 0, length = intsamples.Length; j < length; j += 1) {
-					intsamples[j] = Bit.ReadInt16(bytes, ref i);
+				int[] intData = new int[smplChunk.size >> 1];
+				for (int j = 0, length = intData.Length; j < length; j += 1) {
+					intData[j] = Bit.ReadInt16(bytes, ref i);
 				}
 				i = smplChunk.end;
 				
-				samples = new float[intsamples.Length];
+				data = new float[intData.Length];
 				if (i < sdtaChunk.end) {
 					// [<sm24-ck>] ; The Digital Audio Samples for the lower 8 bits 
 					var sm24Chunk = new Chunk(bytes, ref i);
 					if (sm24Chunk.size == (smplChunk.size >> 1)) {
-						for (int j = 0, length = intsamples.Length; j < length; j += 1) {
-							samples[j] = (float)(intsamples[j] << 8 | Bit.ReadByte(bytes, ref i)) / 0x7FFFFF;
+						for (int j = 0, length = intData.Length; j < length; j += 1) {
+							data[j] = (float)(intData[j] << 8 | Bit.ReadByte(bytes, ref i)) / 0x7FFFFF;
 						}
 					}
 				} else {
-					for (int j = 0, length = intsamples.Length; j < length; j += 1) {
-						samples[j] = (float)intsamples[j] / 0x7FFF;
+					for (int j = 0, length = intData.Length; j < length; j += 1) {
+						data[j] = (float)intData[j] / 0x7FFF;
 					}
 				}
 			}
@@ -173,40 +173,41 @@ namespace Midif.V3 {
 				presets[j].preset = phdrList[j].preset;
 				presets[j].bank = phdrList[j].bank;
 
-				int instStart = phdrList[j].presetBagNdx - phdrList[0].presetBagNdx;
-				int instCount = phdrList[j + 1].presetBagNdx - phdrList[j].presetBagNdx;
-				UnityEngine.Debug.LogFormat("\tpreset {0}: {1} to {2} ({3} instruments) ", presets[j].presetName, phdrList[j].presetBagNdx, phdrList[j + 1].presetBagNdx, instCount);
+				int pZoneCount = phdrList[j + 1].presetBagNdx - phdrList[j].presetBagNdx;
+				UnityEngine.Debug.LogFormat("\tpreset {0}: {1} to {2} ({3} zones) ", presets[j].presetName, phdrList[j].presetBagNdx, phdrList[j + 1].presetBagNdx, pZoneCount);
+				for (int k = 0; k < pZoneCount; k += 1) {
+					int pZoneGenStart = pbagList[phdrList[j].presetBagNdx + k].genNdx;
+					int pZoneGenEnd = pbagList[phdrList[j].presetBagNdx + k + 1].genNdx;
 
-				var instruments = new Sf2Instrument[instCount];
-				for (int k = 0; k < instCount; k += 1) {
-					instruments[k] = new Sf2Instrument();
-					instruments[k].instName = Trim(instList[instStart + k].instName);
-					
-					int zoneCount = instList[instStart + k + 1].instBagNdx - instList[instStart + k].instBagNdx;
-					UnityEngine.Debug.LogFormat("\t\tinstrument {0}: {1} to {2} ({3} zones) ", instruments[k].instName, instList[instStart + k].instBagNdx, instList[k + 1].instBagNdx, zoneCount);
-
-					int presetGenStart = pbagList[phdrList[j].presetBagNdx + k].genNdx;
-					int presetGenEnd = pbagList[phdrList[j].presetBagNdx + k + 1].genNdx;
-					for (int l = presetGenStart; l < presetGenEnd; l += 1) {
+					int instrumentIndex = -1;
+					for (int l = pZoneGenStart; l < pZoneGenEnd; l += 1) {
 						UnityEngine.Debug.LogFormat("\t\t\tpgen {0}: {3} ({1} - {2})", pgenList[l].gen, pgenList[l].amount.lo, pgenList[l].amount.hi, pgenList[l].amount.GetShort());
+						if (pgenList[l].gen == GeneratorType.Instrument) instrumentIndex = pgenList[l].amount.GetShort();
 					}
 
-					if (zoneCount < 0) continue;
+					if (instrumentIndex == -1) {  // not an instrument, but a global preset zone
+						UnityEngine.Debug.LogFormat("\t\tglobal preset zone");
+					} else {
+						int iZoneCount = instList[instrumentIndex + 1].instBagNdx - instList[instrumentIndex].instBagNdx;
+						UnityEngine.Debug.LogFormat("\t\tinstrument {0}: {1} to {2} ({3} zones) ", Trim(instList[instrumentIndex].instName), instList[instrumentIndex].instBagNdx, instList[instrumentIndex + 1].instBagNdx, iZoneCount);
+						for (int l = 0; l < iZoneCount; l += 1) {
+							int iZoneGenStart = ibagList[instList[instrumentIndex].instBagNdx + l].genNdx;
+							int iZoneGenEnd = ibagList[instList[instrumentIndex].instBagNdx + l + 1].genNdx;
 
-					var zones = new Sf2Zone[zoneCount];
-					for (int l = 0; l < zoneCount; l += 1) {
-						zones[l] = new Sf2Zone();
-						UnityEngine.Debug.LogFormat("\t\t\tzone {0}", l);
+							int sampleId = -1;
+							for (int m = iZoneGenStart; m < iZoneGenEnd; m += 1) {
+								UnityEngine.Debug.LogFormat("\t\t\t\tigen {0}: {3} ({1} - {2})", igenList[m].gen, igenList[m].amount.lo, igenList[m].amount.hi, igenList[m].amount.GetShort());
+								if (igenList[m].gen == GeneratorType.SampleID) sampleId = igenList[m].amount.GetShort();
+							}
 
-						int instGenStart = ibagList[instList[instStart + k].instBagNdx + l].genNdx;
-						int instGenEnd = ibagList[instList[instStart + k].instBagNdx + l + 1].genNdx;
-						for (int m = instGenStart; m < instGenEnd; m += 1) {
-							UnityEngine.Debug.LogFormat("\t\t\t\tigen {0}: {3} ({1} - {2})", igenList[m].gen, igenList[m].amount.lo, igenList[m].amount.hi, igenList[m].amount.GetShort());
+							if (sampleId == -1) {  // not a sample, but a global instrument zone
+								UnityEngine.Debug.LogFormat("\t\t\tglobal instrument zone");
+							} else {
+								UnityEngine.Debug.LogFormat("\t\t\tsample {0}", sampleId);
+							}
 						}
 					}
-					instruments[k].zones = zones;
 				}
-				presets[j].instruments = instruments;
 			}
 		}
 
@@ -228,11 +229,11 @@ namespace Midif.V3 {
 	public sealed class Sf2Instrument {
 		public string instName;
 
-		public Sf2Zone[] zones;
+		public Sf2Sample[] samples;
 	}
 
 	[System.Serializable]
-	public sealed class Sf2Zone {
+	public sealed class Sf2Sample {
 		public short startAddrsOffset;
 		public short endAddrsOffset;
 		public short startloopAddrsOffset;
