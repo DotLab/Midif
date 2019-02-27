@@ -35,7 +35,7 @@ namespace Midif.V3 {
 			public uint morphology;
 
 			public PresetHeader(byte[] bytes, ref int i) {
-				presetName = Bit.ReadStringUtf8(bytes, ref i, 20);
+				presetName = Trim(Bit.ReadStringAscii(bytes, ref i, 20));
 				preset = Bit.ReadUInt16(bytes, ref i);
 				bank = Bit.ReadUInt16(bytes, ref i);
 				presetBagNdx = Bit.ReadUInt16(bytes, ref i);
@@ -117,7 +117,7 @@ namespace Midif.V3 {
 			public ushort instBagNdx;
 
 			public InstrumentHeader(byte[] bytes, ref int i) {
-				instName = Bit.ReadStringUtf8(bytes, ref i, 20);
+				instName = Trim(Bit.ReadStringAscii(bytes, ref i, 20));
 				instBagNdx = Bit.ReadUInt16(bytes, ref i);
 			}
 		}
@@ -158,7 +158,7 @@ namespace Midif.V3 {
 			public SampleLink sampleType;
 
 			public SampleHeader(byte[] bytes, ref int i) {
-				sampleName = Bit.ReadStringUtf8(bytes, ref i, 20);
+				sampleName = Trim(Bit.ReadStringAscii(bytes, ref i, 20));
 				start = Bit.ReadUInt32(bytes, ref i);
 				end = Bit.ReadUInt32(bytes, ref i);
 				startloop = Bit.ReadUInt32(bytes, ref i);

@@ -40,14 +40,14 @@ namespace Midif.V3 {
 			int i = 0;
 
 			// <SFBK-form> ; SoundFont 2 RIFF File Format 
-			var sfbkChunk = new Chunk(bytes, ref i);
+			new Chunk(bytes, ref i);
 			// <SFBK-form> -> RIFF (‘sfbk’ ; RIFF form header
-			string sfbkId = Bit.ReadStringAscii(bytes, ref i, 4);
+			Bit.ReadStringAscii(bytes, ref i, 4);
 
 			// <INFO-list> ; Supplemental Information 
 			var infoChunk = new Chunk(bytes, ref i);
 			// <INFO-list> -> LIST (‘INFO’ 
-			string infoId = Bit.ReadStringAscii(bytes, ref i, 4);
+			Bit.ReadStringAscii(bytes, ref i, 4);
 
 			while (i < infoChunk.end) {
 				var chunk = new Chunk(bytes, ref i);
@@ -55,21 +55,21 @@ namespace Midif.V3 {
 				case "ifil": // <ifil-ck> ; Refers to the version of the Sound Font RIFF file 
 					majorVersion = Bit.ReadInt16(bytes, ref i); minorVersion = Bit.ReadInt16(bytes, ref i); break;
 				case "isng": // <isng-ck> ; Refers to the target Sound Engine
-					targetSoundEngine = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					targetSoundEngine = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				case "INAM": // <INAM-ck> ; Refers to the Sound Font Bank Name
-					name = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					name = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				case "ICRD": // [<ICRD-ck>] ; Refers to the Date of Creation of the Bank
-					dateOfCreation = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					dateOfCreation = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				case "IENG": // [<IENG-ck>] ; Sound Designers and Engineers for the Bank
-					enginners = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					enginners = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				case "IPRD": // [<IPRD-ck>] ; Product for which the Bank was intended
-					product = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					product = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				case "ICOP": // [<ICOP-ck>] ; Contains any Copyright message
-					copyright = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					copyright = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				case "ICMT": // [<ICMT-ck>] ; Contains any Comments on the Bank
-					comments = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					comments = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				case "ISFT": // [<ISFT-ck>] ; The SoundFont tools used to create and alter the bank
-					tools = Bit.ReadStringAscii(bytes, ref i, chunk.size); break;
+					tools = Trim(Bit.ReadStringAscii(bytes, ref i, chunk.size)); break;
 				}
 				i = chunk.end;
 			}
@@ -78,7 +78,7 @@ namespace Midif.V3 {
 			// <sdta-list> ; The Sample Binary Data 
 			var sdtaChunk = new Chunk(bytes, ref i);
 			// <sdta-ck> -> LIST (‘sdta’
-			string sdtaId = Bit.ReadStringAscii(bytes, ref i, 4);
+			Bit.ReadStringAscii(bytes, ref i, 4);
 
 			if (sdtaChunk.size > 0) {
 				// [<smpl-ck>] ; The Digital Audio Samples for the upper 16 bits 
@@ -107,9 +107,9 @@ namespace Midif.V3 {
 			i = sdtaChunk.end;
 
 			// <pdta-list> ; The Preset, Instrument, and Sample Header data
-			var pdtaChunk = new Chunk(bytes, ref i);
+			new Chunk(bytes, ref i);
 			// <pdta-ck> -> LIST (‘pdta’ 
-			var pdtaId = Bit.ReadStringAscii(bytes, ref i, 4);
+			Bit.ReadStringAscii(bytes, ref i, 4);
 
 			// <phdr-ck> ; The Preset Headers
 			var phdrChunk = new Chunk(bytes, ref i);
@@ -228,7 +228,7 @@ namespace Midif.V3 {
 			System.Array.Sort(presets);
 		}
 
-		public Sf2Zone GetAppliedZone(Sf2Zone pGlobalZone, Sf2Zone pZone, Sf2Zone iGlobalZone, Sf2Zone iZone) {
+		public static Sf2Zone GetAppliedZone(Sf2Zone pGlobalZone, Sf2Zone pZone, Sf2Zone iGlobalZone, Sf2Zone iZone) {
 			var zone = new Sf2Zone();
 			zone.Default();
 			if (iGlobalZone != null) zone.Set(iGlobalZone);
@@ -331,6 +331,10 @@ namespace Midif.V3 {
 					gens[i].flag = true;
 				}
 			}
+		}
+
+		public bool Contains(byte note, byte velocity) {
+			return noteLo <= note && note <= noteHi && velocityLo <= velocity && velocity <= velocityHi;
 		}
 
 		public void Default() {

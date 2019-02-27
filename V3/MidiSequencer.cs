@@ -4,7 +4,7 @@ using Debug = UnityEngine.Debug;
 namespace Midif.V3 {
 	public sealed class MidiSequencer {
 		public MidiFile file;
-		public MidiSynth synth;
+		public IMidiSynth synth;
 
 		public int[] trackIndices;
 		public double[] trackTicks;
@@ -14,7 +14,7 @@ namespace Midif.V3 {
 
 		public bool isFinished;
 
-		public MidiSequencer(MidiFile file, MidiSynth synth) {
+		public MidiSequencer(MidiFile file, IMidiSynth synth) {
 			this.file = file;
 			this.synth = synth;
 
@@ -77,7 +77,11 @@ namespace Midif.V3 {
 				break;
 			case 0x9:  // note on
 				// Debug.LogFormat("note on: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
-				synth.NoteOn(track, channel, e.b1, e.b2);
+				if (e.b2 == 0) {
+					synth.NoteOff(track, channel, e.b1, 0);
+				} else {
+					synth.NoteOn(track, channel, e.b1, e.b2);
+				}
 				break;
 			case 0xa:  // aftertouch
 				// Debug.LogFormat("aftertouch: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
