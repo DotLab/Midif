@@ -83,14 +83,15 @@ namespace Midif.V3 {
 			if (sdtaChunk.size > 0) {
 				// [<smpl-ck>] ; The Digital Audio Samples for the upper 16 bits 
 				var smplChunk = new Chunk(bytes, ref i);
-				int[] intData = new int[smplChunk.size >> 1];
+				short[] intData = new short[smplChunk.size >> 1];
 				for (int j = 0, length = intData.Length; j < length; j += 1) {
 					intData[j] = Bit.ReadInt16(bytes, ref i);
 				}
 				i = smplChunk.end;
 				
-				data = new float[intData.Length];
+				 data = new float[intData.Length];
 				if (i < sdtaChunk.end) {
+					UnityEngine.Debug.Log("24bit audio");
 					// [<sm24-ck>] ; The Digital Audio Samples for the lower 8 bits 
 					var sm24Chunk = new Chunk(bytes, ref i);
 					if (sm24Chunk.size == (smplChunk.size >> 1)) {
@@ -100,7 +101,7 @@ namespace Midif.V3 {
 					}
 				} else {
 					for (int j = 0, length = intData.Length; j < length; j += 1) {
-						data[j] = (float)intData[j] / 0x7FFF;
+						data[j] = (float)intData[j] / 32767f;
 					}
 				}
 			}
@@ -181,7 +182,7 @@ namespace Midif.V3 {
 					int iZoneGenEnd = ibagList[instList[j].instBagNdx + k + 1].genNdx;
 
 					// A global zone is determined by the fact that the last generator in the list is not a sampleID generator.
-					if (igenList[iZoneGenEnd - 1].gen != GeneratorType.SampleID) {
+					if (igenList[iZoneGenEnd - 1].gen != GeneratorType.sampleID) {
 						instruments[j].globalZone = new Sf2Zone(igenList, iZoneGenStart, iZoneGenEnd);
 						continue;
 					}
@@ -211,7 +212,7 @@ namespace Midif.V3 {
 					int pZoneGenEnd = pbagList[phdrList[j].presetBagNdx + k + 1].genNdx;
 
 					// A global zone is determined by the fact that the last generator in the list is not an Instrument generator.
-					if (pgenList[pZoneGenEnd - 1].gen != GeneratorType.Instrument) {
+					if (pgenList[pZoneGenEnd - 1].gen != GeneratorType.instrument) {
 						presets[j].globalZone = new Sf2Zone(pgenList, pZoneGenStart, pZoneGenEnd);
 						continue;
 					}
@@ -274,12 +275,15 @@ namespace Midif.V3 {
 		public Sf2InstrumentZone[] instrumentZones;
 	}
 
+//	[System.Serializable]
 	public sealed class Sf2InstrumentZone {
 		public Sf2Zone zone;
 		public Sf2File.SampleHeader sampleHeader;
 	}
 
+//	[System.Serializable]
 	public sealed class Sf2Zone {
+//		[System.Serializable]
 		public struct Gen {
 			public bool flag;
 			public short value;
@@ -290,7 +294,7 @@ namespace Midif.V3 {
 		public byte velocityLo;
 		public byte velocityHi = 127;
 
-		public Gen[] gens = new Gen[Sf2File.GeneratorType.Last];
+		public Gen[] gens = new Gen[Sf2File.GeneratorType.last];
 
 		public Sf2Zone() {}
 
@@ -300,13 +304,13 @@ namespace Midif.V3 {
 
 		public void Set(Sf2File.Generator g) {
 			switch (g.gen) {
-			case Sf2File.GeneratorType.KeyRange:
-				noteLo = g.lo;
-				noteHi = g.hi;
+			case Sf2File.GeneratorType.keyRange:
+				noteLo = g.amountLo;
+				noteHi = g.amountHi;
 				break;
-			case Sf2File.GeneratorType.VelRange:
-				velocityLo = g.lo;
-				velocityHi = g.hi;
+			case Sf2File.GeneratorType.velRange:
+				velocityLo = g.amountLo;
+				velocityHi = g.amountHi;
 				break;
 			default:
 				gens[g.gen].value = g.amount;
@@ -316,6 +320,9 @@ namespace Midif.V3 {
 		}
 
 		public void Set(Sf2Zone z) {
+			noteLo = z.noteLo; noteHi = z.noteHi;
+			velocityLo = z.velocityLo; velocityHi = z.velocityHi;
+			
 			for (int i = 0; i < z.gens.Length; i += 1) {
 				if (z.gens[i].flag) {
 					gens[i].value = z.gens[i].value;
@@ -325,6 +332,11 @@ namespace Midif.V3 {
 		}
 
 		public void Add(Sf2Zone z) {
+			if (noteLo < z.noteLo) noteLo = z.noteLo;
+			if (z.noteHi < noteHi) noteHi = z.noteHi;
+			if (velocityLo < z.velocityLo) velocityLo = z.velocityLo;
+			if (z.velocityHi < velocityHi) velocityHi = z.velocityHi;
+
 			for (int i = 0; i < z.gens.Length; i += 1) {
 				if (z.gens[i].flag) {
 					gens[i].value += z.gens[i].value;
@@ -338,23 +350,23 @@ namespace Midif.V3 {
 		}
 
 		public void Default() {
-			gens[Sf2File.GeneratorType.InitialFilterFc].value = 13500;
-			gens[Sf2File.GeneratorType.DelayModLFO].value = -12000;
-			gens[Sf2File.GeneratorType.DelayVibLFO].value = -12000;
-			gens[Sf2File.GeneratorType.DelayModEnv].value = -12000;
-			gens[Sf2File.GeneratorType.AttackModEnv].value = -12000;
-			gens[Sf2File.GeneratorType.HoldModEnv].value = -12000;
-			gens[Sf2File.GeneratorType.DecayModEnv].value = -12000;
-			gens[Sf2File.GeneratorType.ReleaseModEnv].value = -12000;
-			gens[Sf2File.GeneratorType.DelayVolEnv].value = -12000;
-			gens[Sf2File.GeneratorType.AttackVolEnv].value = -12000;
-			gens[Sf2File.GeneratorType.HoldVolEnv].value = -12000;
-			gens[Sf2File.GeneratorType.DecayVolEnv].value = -12000;
-			gens[Sf2File.GeneratorType.ReleaseVolEnv].value = -12000;
-			gens[Sf2File.GeneratorType.Keynum].value = -1;
-			gens[Sf2File.GeneratorType.Velocity].value = -1;
-			gens[Sf2File.GeneratorType.ScaleTuning].value = 100;
-			gens[Sf2File.GeneratorType.OverridingRootKey].value = -1;
+			gens[Sf2File.GeneratorType.initialFilterFc].value = 13500;
+			gens[Sf2File.GeneratorType.delayModLFO].value = -12000;
+			gens[Sf2File.GeneratorType.delayVibLFO].value = -12000;
+			gens[Sf2File.GeneratorType.delayModEnv].value = -12000;
+			gens[Sf2File.GeneratorType.attackModEnv].value = -12000;
+			gens[Sf2File.GeneratorType.holdModEnv].value = -12000;
+			gens[Sf2File.GeneratorType.decayModEnv].value = -12000;
+			gens[Sf2File.GeneratorType.releaseModEnv].value = -12000;
+			gens[Sf2File.GeneratorType.delayVolEnv].value = -12000;
+			gens[Sf2File.GeneratorType.attackVolEnv].value = -12000;
+			gens[Sf2File.GeneratorType.holdVolEnv].value = -12000;
+			gens[Sf2File.GeneratorType.decayVolEnv].value = -12000;
+			gens[Sf2File.GeneratorType.releaseVolEnv].value = -12000;
+			gens[Sf2File.GeneratorType.keynum].value = -1;
+			gens[Sf2File.GeneratorType.velocity].value = -1;
+			gens[Sf2File.GeneratorType.scaleTuning].value = 100;
+			gens[Sf2File.GeneratorType.overridingRootKey].value = -1;
 		}
 	}
 }

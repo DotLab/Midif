@@ -6,6 +6,7 @@
 		void PitchBend(int track, byte channel, byte lsb, byte msb);
 
 		void Reset();
+		void SetVolume(float volume);
 		void Process(float[] data);
 	}
 }

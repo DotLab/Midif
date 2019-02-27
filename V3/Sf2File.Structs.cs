@@ -97,15 +97,15 @@ namespace Midif.V3 {
 			// SFGenerator sfGenOper;
 			public byte gen;
 			// genAmountType genAmount; 
-			public byte lo;
-			public byte hi;
+			public byte amountLo;
+			public byte amountHi;
 			public short amount;
 
 			public Generator(byte[] bytes, ref int i) {
 				gen = (byte)Bit.ReadUInt16(bytes, ref i);
-				lo = Bit.ReadByte(bytes, ref i);
-				hi = Bit.ReadByte(bytes, ref i);
-				amount = (short)((sbyte)hi << 8 | lo);
+				amountLo = Bit.ReadByte(bytes, ref i);
+				amountHi = Bit.ReadByte(bytes, ref i);
+				amount = (short)((sbyte)amountHi << 8 | amountLo);
 			}
 		}
 
@@ -230,66 +230,66 @@ namespace Midif.V3 {
 
 		// Generator and Modulator Destination Enumerators
 		public static class GeneratorType {
-			public const int StartAddrsOffset = 0;             // Sample start address offset (0 - 32767)
-			public const int EndAddrsOffset = 1;               // Sample end address offset (-32767 - 0)
-			public const int StartloopAddrsOffset = 2;         // Sample loop start address offset (-32767 - 32767)
-			public const int EndloopAddrsOffset = 3;           // Sample loop end address offset (-32767 - 32767)
-			public const int StartAddrsCoarseOffset = 4;       // Sample start address coarse offset (X 32768)
-			public const int ModLfoToPitch = 5;                // Modulation LFO to pitch
-			public const int VibLfoToPitch = 6;                // Vibrato LFO to pitch
-			public const int ModEnvToPitch = 7;                // Modulation envelope to pitch
-			public const int InitialFilterFc = 8;              // Filter cutoff
-			public const int InitialFilterQ = 9;               // Filter Q
-			public const int ModLfoToFilterFc = 10;            // Modulation LFO to filter cutoff
-			public const int ModEnvToFilterFc = 11;            // Modulation envelope to filter cutoff
-			public const int EndAddrsCoarseOffset = 12;        // Sample end address coarse offset (X 32768)
-			public const int ModLfoToVolume = 13;              // Modulation LFO to volume
+			public const int startAddrsOffset = 0;             // Sample start address offset (0 - 32767)
+			public const int endAddrsOffset = 1;               // Sample end address offset (-32767 - 0)
+			public const int startloopAddrsOffset = 2;         // Sample loop start address offset (-32767 - 32767)
+			public const int endloopAddrsOffset = 3;           // Sample loop end address offset (-32767 - 32767)
+			public const int startAddrsCoarseOffset = 4;       // Sample start address coarse offset (X 32768)
+			public const int modLfoToPitch = 5;                // Modulation LFO to pitch
+			public const int vibLfoToPitch = 6;                // Vibrato LFO to pitch
+			public const int modEnvToPitch = 7;                // Modulation envelope to pitch
+			public const int initialFilterFc = 8;              // Filter cutoff
+			public const int initialFilterQ = 9;               // Filter Q
+			public const int modLfoToFilterFc = 10;            // Modulation LFO to filter cutoff
+			public const int modEnvToFilterFc = 11;            // Modulation envelope to filter cutoff
+			public const int endAddrsCoarseOffset = 12;        // Sample end address coarse offset (X 32768)
+			public const int modLfoToVolume = 13;              // Modulation LFO to volume
   			// Unused
-			public const int ChorusEffectsSend = 15;           // Chorus send amount
-			public const int ReverbEffectsSend = 16;           // Reverb send amount
-			public const int Pan = 17;                         // Stereo panning
+			public const int chorusEffectsSend = 15;           // Chorus send amount
+			public const int reverbEffectsSend = 16;           // Reverb send amount
+			public const int pan = 17;                         // Stereo panning
 			// Unused
 			// Unused
 			// Unused
-			public const int DelayModLFO = 21;                 // Modulation LFO delay
-			public const int FreqModLFO = 22;                  // Modulation LFO frequency
-			public const int DelayVibLFO = 23;                 // Vibrato LFO delay
-			public const int FreqVibLFO = 24;                  // Vibrato LFO frequency
-			public const int DelayModEnv = 25;                 // Modulation envelope delay
-			public const int AttackModEnv = 26;                // Modulation envelope attack
-			public const int HoldModEnv = 27;                  // Modulation envelope hold
-			public const int DecayModEnv = 28;                 // Modulation envelope decay
-			public const int SustainModEnv = 29;               // Modulation envelope sustain
-			public const int ReleaseModEnv = 30;               // Modulation envelope release
-			public const int KeynumToModEnvHold = 31;          // Key to modulation envelope hold
-			public const int KeynumToModEnvDecay = 32;         // Key to modulation envelope decay
-			public const int DelayVolEnv = 33;                 // Volume envelope delay
-			public const int AttackVolEnv = 34;                // Volume envelope attack
-			public const int HoldVolEnv = 35;                  // Volume envelope hold
-			public const int DecayVolEnv = 36;                 // Volume envelope decay
-			public const int SustainVolEnv = 37;               // Volume envelope sustain
-			public const int ReleaseVolEnv = 38;               // Volume envelope release
-			public const int KeynumToVolEnvHold = 39;          // Key to volume envelope hold
-			public const int KeynumToVolEnvDecay = 40;         // Key to volume envelope decay
-			public const int Instrument = 41;                  // Instrument ID (shouldn't be set by user)
+			public const int delayModLFO = 21;                 // Modulation LFO delay
+			public const int freqModLFO = 22;                  // Modulation LFO frequency
+			public const int delayVibLFO = 23;                 // Vibrato LFO delay
+			public const int freqVibLFO = 24;                  // Vibrato LFO frequency
+			public const int delayModEnv = 25;                 // Modulation envelope delay
+			public const int attackModEnv = 26;                // Modulation envelope attack
+			public const int holdModEnv = 27;                  // Modulation envelope hold
+			public const int decayModEnv = 28;                 // Modulation envelope decay
+			public const int sustainModEnv = 29;               // Modulation envelope sustain
+			public const int releaseModEnv = 30;               // Modulation envelope release
+			public const int keynumToModEnvHold = 31;          // Key to modulation envelope hold
+			public const int keynumToModEnvDecay = 32;         // Key to modulation envelope decay
+			public const int delayVolEnv = 33;                 // Volume envelope delay
+			public const int attackVolEnv = 34;                // Volume envelope attack
+			public const int holdVolEnv = 35;                  // Volume envelope hold
+			public const int decayVolEnv = 36;                 // Volume envelope decay
+			public const int sustainVolEnv = 37;               // Volume envelope sustain
+			public const int releaseVolEnv = 38;               // Volume envelope release
+			public const int keynumToVolEnvHold = 39;          // Key to volume envelope hold
+			public const int keynumToVolEnvDecay = 40;         // Key to volume envelope decay
+			public const int instrument = 41;                  // Instrument ID (shouldn't be set by user)
 			// Reserved
-			public const int KeyRange = 43;                    // MIDI note range
-			public const int VelRange = 44;                    // MIDI velocity range
-			public const int StartloopAddrsCoarseOffset = 45;  // Sample start loop address coarse offset (X 32768)
-			public const int Keynum = 46;                      // Fixed MIDI note number
-			public const int Velocity = 47;                    // Fixed MIDI velocity value
-			public const int InitialAttenuation = 48;          // Initial volume attenuation
+			public const int keyRange = 43;                    // MIDI note range
+			public const int velRange = 44;                    // MIDI velocity range
+			public const int startloopAddrsCoarseOffset = 45;  // Sample start loop address coarse offset (X 32768)
+			public const int keynum = 46;                      // Fixed MIDI note number
+			public const int velocity = 47;                    // Fixed MIDI velocity value
+			public const int initialAttenuation = 48;          // Initial volume attenuation
 			// Reserved
-			public const int EndloopAddrsCoarseOffset = 50;    // Sample end loop address coarse offset (X 32768)
-			public const int CoarseTune = 51;                  // Coarse tuning
-			public const int FineTune = 52;                    // Fine tuning
-			public const int SampleID = 53;                    // Sample ID (shouldn't be set by user)
-			public const int SampleModes = 54;                 // Sample mode flags
+			public const int endloopAddrsCoarseOffset = 50;    // Sample end loop address coarse offset (X 32768)
+			public const int coarseTune = 51;                  // Coarse tuning
+			public const int fineTune = 52;                    // Fine tuning
+			public const int sampleID = 53;                    // Sample ID (shouldn't be set by user)
+			public const int sampleModes = 54;                 // Sample mode flags
 			// Reserved
-			public const int ScaleTuning = 56;                 // Scale tuning
-			public const int ExclusiveClass = 57;              // Exclusive class number
-			public const int OverridingRootKey = 58;           // Sample root note override
-			public const int Last = 59;
+			public const int scaleTuning = 56;                 // Scale tuning
+			public const int exclusiveClass = 57;              // Exclusive class number
+			public const int overridingRootKey = 58;           // Sample root note override
+			public const int last = 59;
 		}
 	}
 }

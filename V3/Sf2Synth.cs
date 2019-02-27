@@ -9,6 +9,9 @@ namespace Midif.V3 {
 			public const float Pi = 3.14159265f;
 			public const float Pi2 = Pi * 2;
 
+			public readonly float sampleRate;
+			public readonly float sampleRateRecip;
+
 			public readonly float[] note2Freq = new float[128];
 			public readonly float[] bend2Pitch = new float[128];
 
@@ -16,7 +19,17 @@ namespace Midif.V3 {
 			public readonly float[] pan2Left = new float[128];
 			public readonly float[] pan2Right = new float[128];
 
-			public Table() {
+			public const int Semi2PitchCenter = 128;
+			public readonly float[] semi2Pitch = new float[256];
+			public readonly float[] cent2Pitch = new float[256];
+
+			public const int Db2GainCenter = 128;
+			public readonly float[] db2Gain = new float[256];
+
+			public Table(float sampleRate) {
+				this.sampleRate = sampleRate;
+				sampleRateRecip = 1f / sampleRate;
+
 				for (int i = 0; i < 128; i++) {
 					note2Freq[i] = (float)(440 * Math.Pow(2, (i - 69) / 12.0));
 					bend2Pitch[i] = (float)Math.Pow(2, 2 * ((i - 64) / 127) / 12.0);
@@ -24,6 +37,12 @@ namespace Midif.V3 {
 					volm2Gain[i] = (float)Deci2Gain(40.0 * Math.Log10(i / 127.0));
 					pan2Left[i] = (float)Deci2Gain(20.0 * Math.Log10(Math.Cos(Math.PI / 2 * (i / 127.0))));
 					pan2Right[i] = (float)Deci2Gain(20.0 * Math.Log10(Math.Sin(Math.PI / 2 * (i / 127.0))));
+				}
+
+				for (int i = 0; i < 256; i++) {
+					semi2Pitch[i] = (float)Math.Pow(2, (i - Semi2PitchCenter) / 12.0);
+					cent2Pitch[i] = (float)Math.Pow(2, (i - Semi2PitchCenter) / 1200.0);
+					db2Gain[i] = (float)Deci2Gain(i - Db2GainCenter);
 				}
 			}
 
@@ -136,39 +155,96 @@ namespace Midif.V3 {
 			}
 		}
 
+		public struct Filter {
+			public float q;
+    		public float a0, a1, a2, b1, b2;
+    		public float z1, z2;
+
+			public void Set(float fc, float q) {
+				this.q  = q;
+				float K = (float)Math.Tan(Math.PI * fc);
+				float norm = 1f / (1f + K / q + K * K);
+				a0 = K * K * norm;
+				a1 = 2f * a0;
+				a2 = a0;
+				b1 = 2f * (K * K - 1f) * norm;
+				b2 = (1f - K / q + K * K) * norm;
+
+				z1 = z2 = 0;
+			}
+
+			public float Process(float i) {
+				float o = i * a0 + z1;
+				z1 = i * a1 + z2 - b1 * o;
+				z2 = i * a2 - b2 * o;
+				return o;
+			}
+		}
+
 		public struct Voice {
+			const byte ModeNoLoop = 0;
+			const byte ModeContinuousLoop = 1;
+			const byte ModeLoopProceed = 3;
+
 			public int next;
 
 			public byte note;
 			public byte velocity;
 			public byte channel;
 
-			public float freq;
 			public float gainLeft;
 			public float gainRight;
 
-			public float time;
-
 			public Envelope envelope;
+			public Filter filter;
 
 			public float[] data;
-			public Sf2Zone zone;
+			public byte mode;
+			public uint start;
+			public uint end;
+			public uint startloop;
+			public uint endloop;
 
-			public void SetZone(Sf2Zone zone) {
-				this.zone = zone;
-			}
+			public uint loopEnd;
+			public uint loopDuration;
+			public float attenuation;
+			public float step;
+			public double phase;
 
-			public void On() {
+			public void On(Table table, Sf2File.SampleHeader sample, Sf2Zone zone) {
+				var gs = zone.gens;
 
+				float cents = gs[GenType.initialFilterFc].value;
+				filter.Set(8.176f * (float)Math.Pow(2, cents / 1200f) * table.sampleRateRecip, (float)gs[GenType.initialFilterQ].value / 100f);
+				// UnityEngine.Debug.LogFormat("fc: {0}, q: {1}", 8.176f * (float)Math.Pow(2, cents / 1200f), (float)gs[GenType.initialFilterQ].value / 100f);
+
+				start =     (uint)(sample.start + (gs[GenType.startAddrsCoarseOffset].value << 15) + gs[GenType.startAddrsOffset].value);
+				end =       (uint)(sample.end + (gs[GenType.endAddrsCoarseOffset].value << 15) + gs[GenType.endAddrsOffset].value);
+				startloop = (uint)(sample.startloop + (gs[GenType.startloopAddrsCoarseOffset].value << 15) + gs[GenType.startloopAddrsOffset].value);
+				endloop =   (uint)(sample.endloop + (gs[GenType.endloopAddrsCoarseOffset].value << 15) + gs[GenType.endloopAddrsOffset].value);
+
+				loopEnd = endloop - start;
+				loopDuration = endloop - startloop;
+
+				int root = gs[GenType.overridingRootKey].value;
+				if (root < 0) root = sample.originalKey;
+
+				step = sample.sampleRate * table.sampleRateRecip
+					* table.semi2Pitch[Table.Semi2PitchCenter + note - root + gs[GenType.coarseTune].value] 
+					* table.cent2Pitch[Table.Semi2PitchCenter + sample.correction + gs[GenType.fineTune].value];
+
+				mode = (byte)gs[GenType.sampleModes].value;
+
+				attenuation = table.db2Gain[Table.Db2GainCenter + gs[GenType.sampleModes].value / 10];
+
+				phase = 0;
 			}
 		}
 
 		public Sf2File file;
 		public Table table;
 
-		public readonly float sampleRate;
-		public readonly float sampleRateRecip;
-
+		public readonly byte[] channelPrograms = new byte[16];
 		public readonly byte[] channelPans = new byte[16];
 		public readonly byte[] channelVolumes = new byte[16];
 		public readonly byte[] channelExpressions = new byte[16];
@@ -184,18 +260,15 @@ namespace Midif.V3 {
 
 		public EnvelopeConfig envelopeConfig;
 
-		public Sf2Synth(Sf2File file, Table table, float sampleRate, int voiceCount) {
-			WaveVisualizer.Data = new float[(int)sampleRate];
+		public Sf2Synth(Sf2File file, Table table, int voiceCount) {
+			WaveVisualizer.Data = new float[2048];
 
 			this.file = file;
 			this.table = table;
 
-			this.sampleRate = sampleRate;
-			sampleRateRecip = 1f / sampleRate;
-
 			masterGain = 1;
 
-			envelopeConfig = new EnvelopeConfig(table, 120, .01f, 60, .1f, 100, .5f, 0, .01f);
+			envelopeConfig = new EnvelopeConfig(table, 127, .01f, 127, .8f, 127, .8f, 0, .01f);
 
 			this.voiceCount = voiceCount;
 			voices = new Voice[voiceCount];
@@ -241,7 +314,6 @@ namespace Midif.V3 {
 					if (!instrumentZone.zone.Contains(note, velocity)) continue;
 
 					var zone = Sf2File.GetAppliedZone(preset.globalZone, presetZone.zone, instrument.globalZone, instrumentZone.zone);
-					UnityEngine.Debug.LogFormat("{0}: {1}", instrumentZone.sampleHeader.sampleName, zone.gens[Sf2File.GeneratorType.InitialAttenuation].value);
 
 					if (firstFreeVoice == -1) {
 						UnityEngine.Debug.LogFormat("Not enough notes active {0} free {1}", CountVoices(firstActiveVoice), CountVoices(firstFreeVoice));
@@ -255,10 +327,8 @@ namespace Midif.V3 {
 					voices[k].note = note;
 					voices[k].velocity = velocity;
 					voices[k].channel = channel;
-					voices[k].time = 0;
 					voices[k].envelope.Reset();
-					voices[k].SetZone(zone);
-					voices[k].On();
+					voices[k].On(table, instrumentZone.sampleHeader, zone);
 
 					UpdateVoicePitch(k);
 					UpdateVoiceGain(k);
@@ -322,23 +392,27 @@ namespace Midif.V3 {
 		}
 
 		public void Process(float[] data) {
-			for (int i = 0, length = data.Length; i < length; i += 2) {
-				float left = 0;
-				float right = 0;
-
-				for (int j = firstActiveVoice; j != -1; j = voices[j].next) {
+			var sb = new System.Text.StringBuilder();
+			for (int j = firstActiveVoice; j != -1; j = voices[j].next) {
+				for (int i = 0, length = data.Length; i < length; i += 2) {
+					float value = voices[j].data[voices[j].start + (uint)voices[j].phase];
 					float envelopeGain = voices[j].envelope.gain;
-					voices[j].envelope.AdvanceTime(sampleRateRecip);
-					float value = envelopeGain * (float)Math.Sin(voices[j].time * voices[j].freq * Table.Pi2);
-					left += value * voices[j].gainLeft;
-					right += value * voices[j].gainRight;
-					voices[j].time += sampleRateRecip;
+					voices[j].envelope.AdvanceTime(table.sampleRateRecip);
+					value = envelopeGain * value;
+					
+					data[i] += value * voices[j].gainLeft;
+					data[i + 1] += value * voices[j].gainRight;
+					
+					voices[j].phase += voices[j].step;
+					if (voices[j].phase > voices[j].loopEnd) {
+						voices[j].phase -= voices[j].loopDuration;
+					}
 				}
+			}
 
-				data[i] = left;
-				data[i + 1] = right;
 
-				WaveVisualizer.Push(left);
+			for (int i = 0, length = data.Length; i < length; i += 2) {
+				WaveVisualizer.Push(data[i]);
 			}
 
 			Panic();
@@ -383,7 +457,6 @@ namespace Midif.V3 {
 		void UpdateVoicePitch(int i) {
 			float channelPitch = table.bend2Pitch[channelpitchBends[voices[i].channel]];
 
-			voices[i].freq = table.note2Freq[voices[i].note] * channelPitch;
 		}
 
 		void UpdateChannelPitch(int channel) {
@@ -391,7 +464,6 @@ namespace Midif.V3 {
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel) {
-					voices[i].freq = table.note2Freq[voices[i].note] * channelPitch;
 				}
 			}
 		}
