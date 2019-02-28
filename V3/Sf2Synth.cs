@@ -107,7 +107,7 @@ namespace Midif.V3 {
 
 				stageTime = releaseTime;
 				gainStep = -gain / releaseTime;
-				Console.Log("off stage", stage, "stageTime", stageTime / 44100f, "gain", gain, "sustainGain", sustainGain);
+				// Console.Log("off stage", stage, "stageTime", stageTime / 44100f, "gain", gain, "sustainGain", sustainGain);
 			}
 
 			public void Advance() {
@@ -126,7 +126,7 @@ namespace Midif.V3 {
 					// case StageRelease: break;  // not possible
 					// case StageDone: break;  // no op
 					}
-					Console.Log("stage", stage, "stageTime", stageTime / 44100f, "gain", gain, "sustainGain", sustainGain);
+					// Console.Log("stage", stage, "stageTime", stageTime / 44100f, "gain", gain, "sustainGain", sustainGain);
 				} else if (stage == StageRelease && gain < .01f) {
 					stage = StageDone;
 				}
@@ -212,8 +212,9 @@ namespace Midif.V3 {
 			public short modLfoToFilterFc;
 			public short modLfoToVolume;
 
-			public bool useFilter; 
 			public Filter filter;
+			public bool useFilter; 
+			public float filterFc;
 
 			public Envelope volEnv;
 			public Envelope modEnv;
@@ -299,7 +300,7 @@ namespace Midif.V3 {
 				if (initialFilterQ != 0 && initialFilterFc < 13500) {
 					useFilter = true;
 					filter.h1 = filter.h2 = 0;
-					filter.On(table, (float)Table.AbsCent2Freq(initialFilterFc) * table.sampleRateRecip, (float)Table.Db2Gain(initialFilterQ * .1));
+					filter.On(table, (float)Table.AbsCent2Freq(initialFilterFc), (float)Table.Db2Gain(initialFilterQ * .1));
 				} else {
 					useFilter = false;
 				}
@@ -317,7 +318,7 @@ namespace Midif.V3 {
 				volEnv.decayTime = (int)(table.sampleRate * Table.Timecent2Sec(decayVolEnv));
 				volEnv.releaseTime = (int)(table.sampleRate * Table.Timecent2Sec(releaseVolEnv));
 				
-				volEnv.sustainGain = (float)Table.Db2Gain(-gs[GenType.sustainVolEnv].value * .1);;
+				volEnv.sustainGain = (float)Table.Db2Gain(-gs[GenType.sustainVolEnv].value * .1);
 			}
 
 			public void Process(float[] buffer) {
@@ -345,6 +346,9 @@ namespace Midif.V3 {
 					if (phase > loopEnd) {
 						phase -= loopDuration;
 					}
+
+					// modLfo
+					
 
 					// volEnv
 					volEnv.Advance();
