@@ -25,7 +25,7 @@ namespace Midif.Synth {
 
 			CalcCoeffs(sampleRate, Type, Fc, Q, PeakGain, out a0, out a1, out a2, out b1, out b2);
 
-			Source.Init(sampleRate);
+			if (Source != null) Source.Init(sampleRate);
 		}
 
 
@@ -62,6 +62,15 @@ namespace Midif.Synth {
 			}
 
 			return RenderCache;
+		}
+
+		public double RenderOne(double input) {
+			var output = input * a0 + z1;
+
+			z1 = input * a1 + z2 - b1 * output;
+			z2 = input * a2 - b2 * output;
+
+			return output;
 		}
 
 		public override void Process (float[] buffer) {
