@@ -326,11 +326,12 @@ namespace Midif.V3 {
 				loopEnd = endloop - start;
 				loopDuration = endloop - startloop;
 
-				int root = gs[GenType.overridingRootKey].value;
+				short root = gs[GenType.overridingRootKey].value;  // MIDI ky# 
+				short scaleTuning = gs[GenType.scaleTuning].value;  // cent/key
 				if (root < 0) root = sample.originalKey;  // root = -1 means not set
 				curStep = step = sample.sampleRate * table.sampleRateRecip
-					* table.semi2Pitch[Table.Semi2PitchCenter + note - root + gs[GenType.coarseTune].value] 
-					* table.cent2Pitch[Table.Semi2PitchCenter + sample.correction + gs[GenType.fineTune].value];
+					* table.semi2Pitch[Table.Semi2PitchCenter + gs[GenType.coarseTune].value] 
+					* (float)Table.Cent2Pitch((note - root) * scaleTuning + sample.correction + gs[GenType.fineTune].value);
 				mode = gs[GenType.sampleModes].value;
 				Console.Log(sample.sampleName, mode);
 				gain = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);  // cB
