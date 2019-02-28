@@ -55,6 +55,7 @@ namespace Midif.V3 {
 			}
 
 			public static double Db2Gain (double db) {
+				// different with common dB (db / 10.0)
 				return Math.Pow(10.0, (db / 20.0));
 			}
 
@@ -78,6 +79,7 @@ namespace Midif.V3 {
 			public const int StageRelease = 5;
 			public const int StageDone = 6;
 
+			// duration in samples
 			public int delayTime;
 			public int attackTime;
 			public int holdTime;
@@ -95,6 +97,7 @@ namespace Midif.V3 {
 			public int stageTime;
 
 			public void On(Table table) {
+				// if too small, set to 0 so that env can just skip stages
 				if (delayTime < table.minSampleCount) delayTime = 0; 
 				if (attackTime < table.minSampleCount) attackTime = 0; 
 				if (holdTime < table.minSampleCount) holdTime = 0; 
@@ -129,6 +132,7 @@ namespace Midif.V3 {
 				time += count;
 				if (time >= stageTime) {
 					do {
+						// skip stages if env can
 						time -= stageTime;
 						stage += 1;
 						switch (stage) {
@@ -140,7 +144,7 @@ namespace Midif.V3 {
 						case StageDone: time = -1; stageTime = 0; break;
 						}
 					} while (time >= stageTime);
-					
+					// then set gain, gainStep, division by 0 should not happen
 					switch (stage) {
 					case StageAttack: gain = 0; gainStep = 1f / attackTime; break;
 					case StageHold: gain = 1; gainStep = 0; break;
@@ -152,6 +156,7 @@ namespace Midif.V3 {
 					// Console.Log("\tenv stage", stage, "time", time, "stageTime", stageTime, "gain", gain, "sustainGain", sustainGain);
 				}
 				
+				// auto done when gain is too low
 				if ((stage == StageSustain || stage == StageRelease) && gain < .01f) {
 					stage = StageDone;
 				}
@@ -168,6 +173,9 @@ namespace Midif.V3 {
 				this.fc = fc;
 				this.q  = q;
 
+				// https://github.com/FluidSynth/fluidsynth/blob/29c668683f43e3b8b4aab0b8aa73cb02aacd6fcb/src/rvoice/fluid_iir_filter.c#L278
+				// previous simple bipolar lowpass is faulty when fc is large and should not be used:
+				// http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
 				float omega = Table.Pi2 * fc * table.sampleRateRecip;
 				float sin = (float)Math.Sin(omega);
 				float cos = (float)Math.Cos(omega);
@@ -196,10 +204,17 @@ namespace Midif.V3 {
 			public float value;
 
 			public void On(Table table, float delay, float freq) {
+				// in sample count
 				delayTime = (int)(delay * table.sampleRate);
 				if (delayTime < table.minSampleCount) delayTime = 0;
 
-				step = freq * table.sampleRateRecip;
+				// period is 2 
+				step = 2f * freq * table.sampleRateRecip;
+				// a triangle:
+				// | /|\ |
+				// |/ | \|
+				// 0  1  2
+				// start from 0.5 so that value is 0
 				phase = 0.5;
 				value = 0;
 			}
@@ -284,6 +299,7 @@ namespace Midif.V3 {
 
 			public void On(Table table, Sf2File.SampleHeader sample, Sf2Zone zone) {
 				count = lastLfoCount = lastEnvCount = 0;
+				// when (count & xxxMask) == 0, update xxx and xxx's dependents
 				lfoMask = 0xff;
 				envMask = 0xff;
 
@@ -298,81 +314,84 @@ namespace Midif.V3 {
 				loopDuration = endloop - startloop;
 
 				int root = gs[GenType.overridingRootKey].value;
-				if (root < 0) root = sample.originalKey;
+				if (root < 0) root = sample.originalKey;  // root = -1 means not set
 				curStep = step = sample.sampleRate * table.sampleRateRecip
 					* table.semi2Pitch[Table.Semi2PitchCenter + note - root + gs[GenType.coarseTune].value] 
 					* table.cent2Pitch[Table.Semi2PitchCenter + sample.correction + gs[GenType.fineTune].value];
 				mode = (byte)gs[GenType.sampleModes].value;
-				gain = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);
+				gain = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);  // cB
 				phase = 0;
 
 				// filter
-				short initialFilterQ = gs[GenType.initialFilterQ].value;
-				short initialFilterFc = gs[GenType.initialFilterFc].value;
+				short initialFilterFc = gs[GenType.initialFilterFc].value;  // cent
+				short initialFilterQ = gs[GenType.initialFilterQ].value;  // cB
 				filterFc = (float)Table.AbsCent2Freq(initialFilterFc);
 				filter.h1 = filter.h2 = 0;
 				filter.Set(table, filterFc, (float)Table.Db2Gain(initialFilterQ * .1));
-				useFilter = initialFilterFc < 13500;  // if become true, stays true
+				// useFilter may be set by modLfo and/or modEnv if they set the fc, so just init whatsoever
+				useFilter = initialFilterFc < 13500;
 
 				// vibLfo
-				vibLfoToPitch = gs[GenType.vibLfoToPitch].value;
+				vibLfoToPitch = gs[GenType.vibLfoToPitch].value;  // cent fs
 				if (vibLfoToPitch != 0) {
 					useVibLfo = true;
-					short delayVibLfo = gs[GenType.delayVibLFO].value;
-					short freqVibLfo = gs[GenType.freqVibLFO].value;
+					short delayVibLfo = gs[GenType.delayVibLFO].value;  // timecent
+					short freqVibLfo = gs[GenType.freqVibLFO].value;  // cent
 					vibLfo.On(table, (float)Table.Timecent2Sec(delayVibLfo), (float)Table.AbsCent2Freq(freqVibLfo));
 				} else {
 					useVibLfo = false;
 				}
 
 				// modLfo
-				modLfoToPitch = gs[GenType.modLfoToPitch].value;
-				modLfoToFilterFc = gs[GenType.modLfoToFilterFc].value;
-				modLfoToVolume = gs[GenType.modLfoToVolume].value;
+				modLfoToPitch = gs[GenType.modLfoToPitch].value;  // cent fs
+				modLfoToFilterFc = gs[GenType.modLfoToFilterFc].value;  // cent fs
+				modLfoToVolume = gs[GenType.modLfoToVolume].value;  // cB fs
 				useModLfoToPitch = modLfoToPitch != 0;
 				useModLfoToFilterFc = modLfoToFilterFc != 0;
 				useModLfoToVolume = modLfoToVolume != 0;
 				useModLfo = useModLfoToPitch || useModLfoToFilterFc || useModLfoToVolume;
 				if (useModLfo) {
+					// modLfo affects filter, so use filter
 					if (useModLfoToFilterFc) useFilter = true; 
-					short delayModLfo = gs[GenType.delayModLFO].value;
-					short freqModLfo = gs[GenType.freqModLFO].value;
+					short delayModLfo = gs[GenType.delayModLFO].value;  // timecent
+					short freqModLfo = gs[GenType.freqModLFO].value;  // cent
 					modLfo.On(table, (float)Table.Timecent2Sec(delayModLfo), (float)Table.AbsCent2Freq(freqModLfo));
 				}
 
 				// volEnv
-				short delayVolEnv = gs[GenType.delayVolEnv].value;
-				short attackVolEnv = gs[GenType.attackVolEnv].value;
-				short holdVolEnv = gs[GenType.holdVolEnv].value;
-				short decayVolEnv = gs[GenType.decayVolEnv].value;
-				short releaseVolEnv = gs[GenType.releaseVolEnv].value;
+				short delayVolEnv = gs[GenType.delayVolEnv].value;  // timecent
+				short attackVolEnv = gs[GenType.attackVolEnv].value;  // timecent
+				short holdVolEnv = gs[GenType.holdVolEnv].value;  // timecent
+				short decayVolEnv = gs[GenType.decayVolEnv].value;  // timecent
+				short releaseVolEnv = gs[GenType.releaseVolEnv].value;  // timecent
 				volEnv.delayTime = (int)(table.sampleRate * Table.Timecent2Sec(delayVolEnv));
 				volEnv.attackTime = (int)(table.sampleRate * Table.Timecent2Sec(attackVolEnv));
 				volEnv.holdTime = (int)(table.sampleRate * Table.Timecent2Sec(holdVolEnv));
 				volEnv.decayTime = (int)(table.sampleRate * Table.Timecent2Sec(decayVolEnv));
 				volEnv.releaseTime = (int)(table.sampleRate * Table.Timecent2Sec(releaseVolEnv));
-				volEnv.sustainGain = (float)Table.Db2Gain(-gs[GenType.sustainVolEnv].value * .1);
+				volEnv.sustainGain = (float)Table.Db2Gain(-gs[GenType.sustainVolEnv].value * .1);  // cB attn
 				volEnv.On(table);
 
 				// modEnv
-				modEnvToPitch = gs[GenType.modEnvToPitch].value;
-				modEnvToFilterFc = gs[GenType.modEnvToFilterFc].value;
+				modEnvToPitch = gs[GenType.modEnvToPitch].value;  // cent fs
+				modEnvToFilterFc = gs[GenType.modEnvToFilterFc].value;  // cent fs
 				useModEnvToPitch = modEnvToPitch != 0;
 				useModEnvToFilterFc = modEnvToFilterFc != 0;
 				useModEnv = useModEnvToPitch || useModEnvToFilterFc;
 				if (useModEnv) {
-					if (useModEnvToFilterFc) useFilter = true; 
-					short delayModEnv = gs[GenType.delayModEnv].value;
-					short attackModEnv = gs[GenType.attackModEnv].value;
-					short holdModEnv = gs[GenType.holdModEnv].value;
-					short decayModEnv = gs[GenType.decayModEnv].value;
-					short releaseModEnv = gs[GenType.releaseModEnv].value;
+					// modEnv affects filter, so use filter
+					if (useModEnvToFilterFc) useFilter = true;
+					short delayModEnv = gs[GenType.delayModEnv].value;  // timecent
+					short attackModEnv = gs[GenType.attackModEnv].value;  // timecent
+					short holdModEnv = gs[GenType.holdModEnv].value;  // timecent
+					short decayModEnv = gs[GenType.decayModEnv].value;  // timecent
+					short releaseModEnv = gs[GenType.releaseModEnv].value;  // timecent
 					modEnv.delayTime = (int)(table.sampleRate * Table.Timecent2Sec(delayModEnv));
 					modEnv.attackTime = (int)(table.sampleRate * Table.Timecent2Sec(attackModEnv));
 					modEnv.holdTime = (int)(table.sampleRate * Table.Timecent2Sec(holdModEnv));
 					modEnv.decayTime = (int)(table.sampleRate * Table.Timecent2Sec(decayModEnv));
 					modEnv.releaseTime = (int)(table.sampleRate * Table.Timecent2Sec(releaseModEnv));
-					modEnv.sustainGain = (float)Table.Db2Gain(-gs[GenType.sustainVolEnv].value * .1);
+					modEnv.sustainGain = (float)Table.Db2Gain(-gs[GenType.sustainVolEnv].value * .1);  // cB attn
 					modEnv.On(table);
 				}
 
@@ -391,25 +410,30 @@ namespace Midif.V3 {
 
 			public void Process(float[] buffer) {
 				for (int i = 0, length = buffer.Length; i < length; i += 2) {
+					// the first iteration will call update with count = 0 so that filter, lfos, envs can init
 					bool lfoFlag = (count & lfoMask) == 0;
 					bool envFlag = (count & envMask) == 0;
+					// maybe more specific flags will be better?
 					if (lfoFlag || envFlag) Update(lfoFlag, envFlag);
 					count += 1;
 
+					// simple interpolation
 					uint uintPhase = (uint)phase;
 					float t = (float)(phase - uintPhase);
 					float value = data[start + uintPhase] * (1f - t) + data[start + uintPhase + 1] * t;
 
+					// filter even when fc > 13500 (set fc = 13500 when that happens) so that filter is always ready
 					if (useFilter) value = filter.Process(value);
 
 					value = value * curGain;
-					buffer[i] += value; //value * gainLeft;
+					buffer[i] += value * gainLeft;
 					buffer[i + 1] += value * gainRight;
 					phase += curStep;
 					if (phase > loopEnd) phase -= loopDuration;
 				}
 			}
 
+			// will be called with count = 0 to init
 			void Update(bool lfoFlag, bool envFlag) {
 				// Console.Log("v", id, "update", lfoFlag, envFlag, count);
 				if (envFlag || (lfoFlag && useModLfoToVolume)) {
@@ -421,11 +445,13 @@ namespace Midif.V3 {
 					float curFilterFc = filterFc;
 					if (useModLfoToFilterFc) curFilterFc *= (float)Table.Cent2Pitch(modLfoToFilterFc * modLfo.value);
 					if (useModEnvToFilterFc) curFilterFc *= (float)Table.Cent2Pitch(modEnvToFilterFc * modEnv.gain);
+					// filter will become super unstable if fc > 13500, so just set it back to 13500Hz
 					if (curFilterFc > 13500) curFilterFc = 13500;
-					else useFilter = true;
-					if (useFilter && curFilterFc != filter.fc) {
+					if (curFilterFc != filter.fc) {
+						// float diff = (float)Math.Abs(curFilterFc - filter.fc);
 						float diff = curFilterFc - filter.fc;
 						if (diff < 0) diff = -diff;
+						// only update filter is diff is larger than 100Hz since set filter is very expensive
 						if (diff > 100) filter.Set(table, curFilterFc, filter.q);
 					}
 				}
@@ -442,6 +468,7 @@ namespace Midif.V3 {
 					if (lfoFlag && useVibLfo) vibLfo.Advance(skip);
 					if (lfoFlag && useModLfo) modLfo.Advance(skip);
 				}
+
 				if (envFlag) {
 					int skip = count - lastEnvCount; lastEnvCount = count;
 					if (envFlag && useModEnv) modEnv.Advance(skip);
