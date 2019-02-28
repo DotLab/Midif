@@ -138,8 +138,8 @@ namespace Midif.V3 {
     		public float a1, a2, b1, b2;
     		public float h1, h2;
 
-			public void On(Table table, float fc, float q) {
-				Console.Log("lowpass fc", fc, "q", q);
+			public void Set(Table table, float fc, float q) {
+				Console.Log("set lowpass fc", fc, "q", q);
 				this.fc = fc;
 				this.q  = q;
 
@@ -167,22 +167,21 @@ namespace Midif.V3 {
 		public struct Lfo {
 			public float step;
 			public double phase;
+			public float value;
 
 			public void On(Table table, float delay, float freq) {
 				step = freq * table.sampleRateRecip;
 				phase = -delay * freq;
+				value = 0;
 			}
 
-			public float Advance() {
-				float value = 0;
+			public void Advance() {
 				if (phase < 0) value = 0;
 				else if (phase < 1) value = (float)(phase * 2.0 - 1.0);
 				else value = (float)(1.0 - 2.0 * (phase - 1.0));
 				
 				phase += step;
-				if (phase > 2) phase -= 2;
-
-				return value;  
+				if (phase > 2) phase -= 2;  
 			}
 		}
 
@@ -202,7 +201,7 @@ namespace Midif.V3 {
 
 			public Lfo vibLfo;
 			public Lfo modLfo;
-			public bool useVibLfoToPitch; 
+			public bool useVibLfo; 
 			public bool useModLfo;
 			public bool useModLfoToPitch;
 			public bool useModLfoToFilterFc;
@@ -263,12 +262,12 @@ namespace Midif.V3 {
 				// vibLfo
 				vibLfoToPitch = gs[GenType.vibLfoToPitch].value;
 				if (vibLfoToPitch != 0) {
-					useVibLfoToPitch = true;
+					useVibLfo = true;
 					short delayVibLfo = gs[GenType.delayVibLFO].value;
 					short freqVibLfo = gs[GenType.freqVibLFO].value;
 					vibLfo.On(table, (float)Table.Timecent2Sec(delayVibLfo), (float)Table.AbsCent2Freq(freqVibLfo));
 				} else {
-					useVibLfoToPitch = false;
+					useVibLfo = false;
 				}
 
 				// modLfo
@@ -300,7 +299,8 @@ namespace Midif.V3 {
 				if (initialFilterQ != 0 && initialFilterFc < 13500) {
 					useFilter = true;
 					filter.h1 = filter.h2 = 0;
-					filter.On(table, (float)Table.AbsCent2Freq(initialFilterFc), (float)Table.Db2Gain(initialFilterQ * .1));
+					filterFc = (float)Table.AbsCent2Freq(initialFilterFc);
+					filter.Set(table, filterFc, (float)Table.Db2Gain(initialFilterQ * .1));
 				} else {
 					useFilter = false;
 				}
@@ -327,30 +327,33 @@ namespace Midif.V3 {
 					float t = (float)(phase - uintPhase);
 					float value = data[start + uintPhase] * (1f - t) + data[start + uintPhase + 1] * t;
 
-					if (useFilter) value = filter.Process(value);
+					if (useFilter) {
+						if (useModLfoToFilterFc || useModEnvToFilterFc) {
+							float curFilterFc = filterFc;
+							if (useModLfoToFilterFc) curFilterFc *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(modLfoToFilterFc * modLfo.value)];
+							if (useModEnvToFilterFc) curFilterFc *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(modEnvToFilterFc * modEnv.gain)];
+							filter.Set(table, curFilterFc, filter.q);
+						}
+						value = filter.Process(value);
+					}
 
 					value = value * attenuation * volEnv.gain;
 					
 					buffer[i] += value * gainLeft;
 					buffer[i + 1] += value * gainRight;
-					// buffer[i] += attenuation * volEnv.gain;
-					// buffer[i] += attenuation * vibLfoValue;
-					// buffer[i] += (float)bi.RenderOne(value);
 					
 					// voice
 					float curStep = step;
-					if (useVibLfoToPitch) curStep *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(vibLfoToPitch * vibLfo.Advance())];
-					if (useModLfoToPitch) curStep *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(modLfoToPitch * modLfo.Advance())];
+					if (useVibLfo) curStep *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(vibLfoToPitch * vibLfo.value)];
+					if (useModLfoToPitch) curStep *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(modLfoToPitch * modLfo.value)];
+					if (useModEnvToPitch) curStep *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(modEnvToPitch * modEnv.gain)];
 
 					phase += curStep;
-					if (phase > loopEnd) {
-						phase -= loopDuration;
-					}
+					if (phase > loopEnd) phase -= loopDuration;
 
-					// modLfo
-					
-
-					// volEnv
+					if (useVibLfo) vibLfo.Advance();
+					if (useModLfo) modLfo.Advance();
+					if (useModEnv) modEnv.Advance();
 					volEnv.Advance();
 				}
 			}
