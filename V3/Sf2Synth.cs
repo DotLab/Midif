@@ -143,7 +143,7 @@ namespace Midif.V3 {
 				this.fc = fc;
 				this.q  = q;
 
-				float omega = 2f * Table.Pi2 * fc * table.sampleRateRecip;
+				float omega = Table.Pi2 * fc * table.sampleRateRecip;
 				float sin = (float)Math.Sin(omega);
 				float cos = (float)Math.Cos(omega);
 				float alpha = sin / (2f * q);
