@@ -291,6 +291,12 @@ namespace Midif.V3 {
 			public const int overridingRootKey = 58;           // Sample root note override
 			public const int last = 59;
 		}
+
+		public static class SampleMode {
+			public const short noLoop = 0;
+			public const short contLoop = 1;
+			public const short contLoopRelease = 3;
+		}
 	}
 }
 

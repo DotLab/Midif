@@ -125,6 +125,16 @@ namespace Midif.V3 {
 				// Console.Log("\tenv off stage", stage, "stageTime", stageTime, "gain", gain, "sustainGain", sustainGain);
 			}
 
+			// force stop
+			public void Kill() {
+				if (stage == StageDone) return;
+				stage = StageDone;
+				time = 0;
+				gain = 0;
+				stageTime = 0;
+				gainStep = 0;
+			}
+
 			public void Advance(int count) {
 				if (stage == StageSustain || stage == StageDone) return;
 
@@ -279,14 +289,12 @@ namespace Midif.V3 {
 			public float[] data;
 			public Table table;
 
-			public byte mode;
+			public short mode;
 			public uint start;
-			public uint end;
-			public uint startloop;
-			public uint endloop;
-
+			public uint duration;
 			public uint loopEnd;
 			public uint loopDuration;
+
 			public float step;
 			public float curStep;
 			public double phase;
@@ -297,19 +305,24 @@ namespace Midif.V3 {
 			public int lfoMask;
 			public int envMask;
 
+			public bool killed;
+
 			public void On(Table table, Sf2File.SampleHeader sample, Sf2Zone zone) {
 				count = lastLfoCount = lastEnvCount = 0;
 				// when (count & xxxMask) == 0, update xxx and xxx's dependents
 				lfoMask = 0xff;
 				envMask = 0xff;
 
+				killed = false;
+
 				var gs = zone.gens;
 
 				// voice
 				start = (uint)(sample.start + (gs[GenType.startAddrsCoarseOffset].value << 15) + gs[GenType.startAddrsOffset].value);
-				end = (uint)(sample.end + (gs[GenType.endAddrsCoarseOffset].value << 15) + gs[GenType.endAddrsOffset].value);
-				startloop = (uint)(sample.startloop + (gs[GenType.startloopAddrsCoarseOffset].value << 15) + gs[GenType.startloopAddrsOffset].value);
-				endloop = (uint)(sample.endloop + (gs[GenType.endloopAddrsCoarseOffset].value << 15) + gs[GenType.endloopAddrsOffset].value);
+				uint end = (uint)(sample.end + (gs[GenType.endAddrsCoarseOffset].value << 15) + gs[GenType.endAddrsOffset].value);
+				uint startloop = (uint)(sample.startloop + (gs[GenType.startloopAddrsCoarseOffset].value << 15) + gs[GenType.startloopAddrsOffset].value);
+				uint endloop = (uint)(sample.endloop + (gs[GenType.endloopAddrsCoarseOffset].value << 15) + gs[GenType.endloopAddrsOffset].value);
+				duration = end - start;
 				loopEnd = endloop - start;
 				loopDuration = endloop - startloop;
 
@@ -318,7 +331,8 @@ namespace Midif.V3 {
 				curStep = step = sample.sampleRate * table.sampleRateRecip
 					* table.semi2Pitch[Table.Semi2PitchCenter + note - root + gs[GenType.coarseTune].value] 
 					* table.cent2Pitch[Table.Semi2PitchCenter + sample.correction + gs[GenType.fineTune].value];
-				mode = (byte)gs[GenType.sampleModes].value;
+				mode = gs[GenType.sampleModes].value;
+				Console.Log(sample.sampleName, mode);
 				gain = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);  // cB
 				phase = 0;
 
@@ -408,6 +422,11 @@ namespace Midif.V3 {
 				if (useModEnv) modEnv.Off();
 			}
 
+			public void Kill() {
+				volEnv.Kill();
+				killed = true;
+			}
+
 			public void Process(float[] buffer) {
 				for (int i = 0, length = buffer.Length; i < length; i += 2) {
 					// the first iteration will call update with count = 0 so that filter, lfos, envs can init
@@ -418,9 +437,14 @@ namespace Midif.V3 {
 					count += 1;
 
 					// simple interpolation
-					uint uintPhase = (uint)phase;
-					float t = (float)(phase - uintPhase);
-					float value = data[start + uintPhase] * (1f - t) + data[start + uintPhase + 1] * t;
+					float value;
+					if (killed) {
+						value = 0;
+					} else {
+						uint uintPhase = (uint)phase;
+						float t = (float)(phase - uintPhase);
+						value = data[start + uintPhase] * (1f - t) + data[start + uintPhase + 1] * t;
+					}
 
 					// filter even when fc > 13500 (set fc = 13500 when that happens) so that filter is always ready
 					if (useFilter) value = filter.Process(value);
@@ -428,8 +452,24 @@ namespace Midif.V3 {
 					value = value * curGain;
 					buffer[i] += value * gainLeft;
 					buffer[i + 1] += value * gainRight;
+
 					phase += curStep;
-					if (phase > loopEnd) phase -= loopDuration;
+					switch (mode) {
+					case Sf2File.SampleMode.contLoop:
+						if (phase > loopEnd) phase -= loopDuration;
+						break;
+					case Sf2File.SampleMode.contLoopRelease:
+						if (volEnv.stage == Envelope.StageRelease) {
+							if (phase > duration) Kill();
+						} else {
+							if (phase > loopEnd) phase -= loopDuration;
+						}
+						break;
+					case Sf2File.SampleMode.noLoop:
+					default:
+						if (phase > duration) Kill();
+						break;
+					}
 				}
 			}
 
