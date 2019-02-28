@@ -202,7 +202,7 @@ namespace Midif.V3 {
 
 			public Lfo vibLfo;
 			public Lfo modLfo;
-			public bool useVibLfo; 
+			public bool useVibLfoToPitch; 
 			public bool useModLfo;
 			public bool useModLfoToPitch;
 			public bool useModLfoToFilterFc;
@@ -220,8 +220,8 @@ namespace Midif.V3 {
 			public bool useModEnv;
 			public bool useModEnvToPitch;
 			public bool useModEnvToFilterFc;
-			public float modEnvToPitch;
-			public float modEnvToFilterFc;
+			public short modEnvToPitch;
+			public short modEnvToFilterFc;
 
 			public float[] data;
 			public Table table;
@@ -262,12 +262,35 @@ namespace Midif.V3 {
 				// vibLfo
 				vibLfoToPitch = gs[GenType.vibLfoToPitch].value;
 				if (vibLfoToPitch != 0) {
-					useVibLfo = true;
+					useVibLfoToPitch = true;
 					short delayVibLfo = gs[GenType.delayVibLFO].value;
 					short freqVibLfo = gs[GenType.freqVibLFO].value;
 					vibLfo.On(table, (float)Table.Timecent2Sec(delayVibLfo), (float)Table.AbsCent2Freq(freqVibLfo));
 				} else {
-					useVibLfo = false;
+					useVibLfoToPitch = false;
+				}
+
+				// modLfo
+				modLfoToPitch = gs[GenType.modLfoToPitch].value;
+				modLfoToFilterFc = gs[GenType.modLfoToFilterFc].value;
+				modLfoToVolume = gs[GenType.modLfoToVolume].value;
+				useModLfo = false;
+				if (modLfoToPitch != 0) {
+					useModLfo = true;
+					useModLfoToPitch = true;
+				}
+				if (modLfoToFilterFc != 0) {
+					useModLfo = true;
+					useModLfoToFilterFc = true;
+				}
+				if (modLfoToVolume != 0) {
+					useModLfo = true;
+					useModLfoToVolume = true;
+				}
+				if (useModLfo) {
+					short delayModLfo = gs[GenType.delayModLFO].value;
+					short freqModLfo = gs[GenType.freqModLFO].value;
+					modLfo.On(table, (float)Table.Timecent2Sec(delayModLfo), (float)Table.AbsCent2Freq(freqModLfo));
 				}
 
 				// filter
@@ -304,9 +327,6 @@ namespace Midif.V3 {
 					float value = data[start + uintPhase] * (1f - t) + data[start + uintPhase + 1] * t;
 
 					if (useFilter) value = filter.Process(value);
-					// if (useVibLfo) {
-						// float vibLfoValue = vibLfo.Process();
-					// }
 
 					value = value * attenuation * volEnv.gain;
 					
@@ -317,11 +337,11 @@ namespace Midif.V3 {
 					// buffer[i] += (float)bi.RenderOne(value);
 					
 					// voice
-					if (useVibLfo) {
-						phase += step * table.cent2Pitch[Table.Semi2PitchCenter + (int)(vibLfoToPitch * vibLfo.Advance())];
-					} else {
-						phase += step;
-					}
+					float curStep = step;
+					if (useVibLfoToPitch) curStep *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(vibLfoToPitch * vibLfo.Advance())];
+					if (useModLfoToPitch) curStep *= table.cent2Pitch[Table.Semi2PitchCenter + (int)(modLfoToPitch * modLfo.Advance())];
+
+					phase += curStep;
 					if (phase > loopEnd) {
 						phase -= loopDuration;
 					}
