@@ -7,7 +7,7 @@
 
 		void Reset();
 		void SetVolume(float volume);
-		void Process(float[] data);
+		void Process(float[] buffer);
 	}
 }
 
