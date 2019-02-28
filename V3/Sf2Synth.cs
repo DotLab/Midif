@@ -107,7 +107,7 @@ namespace Midif.V3 {
 
 				stageTime = releaseTime;
 				gainStep = -gain / releaseTime;
-				// Console.Log("off stage", stage, "stageTime", stageTime, "gain", gain, "sustainGain", sustainGain);
+				Console.Log("off stage", stage, "stageTime", stageTime / 44100f, "gain", gain, "sustainGain", sustainGain);
 			}
 
 			public void Advance() {
@@ -126,7 +126,9 @@ namespace Midif.V3 {
 					// case StageRelease: break;  // not possible
 					// case StageDone: break;  // no op
 					}
-					// Console.Log("stage", stage, "stageTime", stageTime, "gain", gain, "sustainGain", sustainGain);
+					Console.Log("stage", stage, "stageTime", stageTime / 44100f, "gain", gain, "sustainGain", sustainGain);
+				} else if (stage == StageRelease && gain < .01f) {
+					stage = StageDone;
 				}
 			}
 		}
@@ -198,13 +200,28 @@ namespace Midif.V3 {
 			public float gainLeft;
 			public float gainRight;
 
-			public Envelope volEnv;
+			public Lfo vibLfo;
+			public Lfo modLfo;
+			public bool useVibLfo; 
+			public bool useModLfo;
+			public bool useModLfoToPitch;
+			public bool useModLfoToFilterFc;
+			public bool useModLfoToVolume;
+			public short vibLfoToPitch;
+			public short modLfoToPitch;
+			public short modLfoToFilterFc;
+			public short modLfoToVolume;
+
 			public bool useFilter; 
 			public Filter filter;
 
-			public bool useVibLfo; 
-			public Lfo vibLfo;
-			public short vibLfoToPitch;
+			public Envelope volEnv;
+			public Envelope modEnv;
+			public bool useModEnv;
+			public bool useModEnvToPitch;
+			public bool useModEnvToFilterFc;
+			public float modEnvToPitch;
+			public float modEnvToFilterFc;
 
 			public float[] data;
 			public Table table;
@@ -240,8 +257,29 @@ namespace Midif.V3 {
 					* table.cent2Pitch[Table.Semi2PitchCenter + sample.correction + gs[GenType.fineTune].value];
 				mode = (byte)gs[GenType.sampleModes].value;
 				attenuation = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);
-
 				phase = 0;
+
+				// vibLfo
+				vibLfoToPitch = gs[GenType.vibLfoToPitch].value;
+				if (vibLfoToPitch != 0) {
+					useVibLfo = true;
+					short delayVibLfo = gs[GenType.delayVibLFO].value;
+					short freqVibLfo = gs[GenType.freqVibLFO].value;
+					vibLfo.On(table, (float)Table.Timecent2Sec(delayVibLfo), (float)Table.AbsCent2Freq(freqVibLfo));
+				} else {
+					useVibLfo = false;
+				}
+
+				// filter
+				short initialFilterQ = gs[GenType.initialFilterQ].value;
+				short initialFilterFc = gs[GenType.initialFilterFc].value;
+				if (initialFilterQ != 0 && initialFilterFc < 13500) {
+					useFilter = true;
+					filter.h1 = filter.h2 = 0;
+					filter.On(table, (float)Table.AbsCent2Freq(initialFilterFc) * table.sampleRateRecip, (float)Table.Db2Gain(initialFilterQ * .1));
+				} else {
+					useFilter = false;
+				}
 
 				// volEnv
 				short delayVolEnv = gs[GenType.delayVolEnv].value;
@@ -256,32 +294,7 @@ namespace Midif.V3 {
 				volEnv.decayTime = (int)(table.sampleRate * Table.Timecent2Sec(decayVolEnv));
 				volEnv.releaseTime = (int)(table.sampleRate * Table.Timecent2Sec(releaseVolEnv));
 				
-//				volEnv.sustainGain = table.db2Gain[Table.Db2GainCenter - gs[GenType.sustainVolEnv].value / 10];
 				volEnv.sustainGain = (float)Table.Db2Gain(-gs[GenType.sustainVolEnv].value * .1);;
-
-				// filter
-				short initialFilterQ = gs[GenType.initialFilterQ].value;
-				short initialFilterFc = gs[GenType.initialFilterFc].value;
-				if (initialFilterQ != 0 && initialFilterFc < 13500) {
-					useFilter = true;
-					filter.h1 = filter.h2 = 0;
-					filter.On(table, (float)Table.AbsCent2Freq(initialFilterFc) * table.sampleRateRecip, (float)Table.Db2Gain(initialFilterQ * .1));//(float)Table.Db2Gain(initialFilterQ * .1));
-					Console.Log("use filter", (float)Table.AbsCent2Freq(initialFilterFc), (float)Table.Db2Gain(initialFilterQ * .1));
-
-				} else {
-					useFilter = false;
-				}
-
-				// vibLfo
-				vibLfoToPitch = gs[GenType.vibLfoToPitch].value;
-				if (vibLfoToPitch != 0) {
-					useVibLfo = true;
-					short delayVibLfo = gs[GenType.delayVibLFO].value;
-					short freqVibLfo = gs[GenType.freqVibLFO].value;
-					vibLfo.On(table, (float)Table.Timecent2Sec(delayVibLfo), (float)Table.AbsCent2Freq(freqVibLfo));
-				} else {
-					useVibLfo = false;
-				}
 			}
 
 			public void Process(float[] buffer) {
@@ -373,7 +386,7 @@ namespace Midif.V3 {
 		}
 
 		public void NoteOn(int track, byte channel, byte note, byte velocity) {
-			if (channel != 0) return;
+			if (channel == 9) return;
 
 			var preset = file.presets[presetIndex];
 			for (int i = 0, endI = preset.presetZones.Length; i < endI; i += 1) {
@@ -387,14 +400,23 @@ namespace Midif.V3 {
 
 					var zone = Sf2File.GetAppliedZone(preset.globalZone, presetZone.zone, instrument.globalZone, instrumentZone.zone);
 
-					if (firstFreeVoice == -1) {
-						UnityEngine.Debug.LogFormat("Not enough notes active {0} free {1}", CountVoices(firstActiveVoice), CountVoices(firstFreeVoice));
-						return;
-					}
 					int k = firstFreeVoice;
-					firstFreeVoice = voices[k].next;
-					voices[k].next = firstActiveVoice;
-					firstActiveVoice = k;
+					if (k == -1) {
+						// UnityEngine.Debug.LogFormat("Not enough notes active {0} free {1}", CountVoices(firstActiveVoice), CountVoices(firstFreeVoice));
+						// return;
+
+						// find the oldest active voice and move it to front
+						for (k = firstActiveVoice; voices[voices[k].next].next != -1; k = voices[k].next);
+						int next = voices[k].next;
+						voices[k].next = -1;
+						k = next;
+						voices[k].next = firstActiveVoice;
+						firstActiveVoice = k;
+					} else {
+						firstFreeVoice = voices[k].next;
+						voices[k].next = firstActiveVoice;
+						firstActiveVoice = k;
+					}
 
 					voices[k].note = note;
 					voices[k].velocity = velocity;
@@ -410,7 +432,7 @@ namespace Midif.V3 {
 		}
 
 		public void NoteOff(int track, byte channel, byte note, byte velocity) {
-			if (channel != 0) return;
+			if (channel == 9) return;
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel && voices[i].note == note) {
