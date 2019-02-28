@@ -229,6 +229,17 @@ namespace Midif.V3 {
 			System.Array.Sort(presets);
 		}
 
+		public int FindPreset(byte bank, byte preset) {
+			for (int i = 0; i < presets.Length; i += 1) {
+				if (presets[i].bank < bank) continue;
+				if (presets[i].bank > bank) return -1;
+				if (presets[i].preset < preset) continue;
+				if (presets[i].preset > preset) return -1;
+				return i;
+			}
+			return -1;
+		}
+
 		public static Sf2Zone GetAppliedZone(Sf2Zone pGlobalZone, Sf2Zone pZone, Sf2Zone iGlobalZone, Sf2Zone iZone) {
 			var zone = new Sf2Zone();
 			zone.Default();

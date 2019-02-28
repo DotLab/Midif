@@ -527,7 +527,7 @@ namespace Midif.V3 {
 		public readonly ushort[] channelpitchBends = new ushort[16];
 
 		public float masterGain;
-		public byte presetIndex = 10;
+		public int presetIndex;
 
 		public readonly int voiceCount;
 		public readonly Voice[] voices;
