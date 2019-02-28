@@ -400,7 +400,7 @@ namespace Midif.V3 {
 					"modLfo", modLfoToPitch, modLfoToFilterFc, modLfoToVolume, 
 					"modEnv", modEnvToPitch, modEnvToFilterFc, 
 					"useVibLfo", useVibLfo, "useModLfo", useModLfo, "useModEnv", useModEnv, "useFilter", useFilter,
-					"fc", initialFilterFc, "q", initialFilterQ);
+					"filter", filterFc, initialFilterQ, sample.sampleName);
 			}
 
 			public void Off() {
@@ -544,6 +544,7 @@ namespace Midif.V3 {
 					var instrumentZone = instrument.instrumentZones[j];
 					if (!instrumentZone.zone.Contains(note, velocity)) continue;
 
+					// Console.Log("synth noteon", note, velocity, "preset", preset.presetName, "instrument", instrument.instName, "sample", instrumentZone.sampleHeader.sampleName);
 					var zone = Sf2File.GetAppliedZone(preset.globalZone, presetZone.zone, instrument.globalZone, instrumentZone.zone);
 
 					int k = firstFreeVoice;

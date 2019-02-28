@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Encoding = System.Text.Encoding;
 
 namespace Midif.V3 {
-	[System.Serializable]
+	// [System.Serializable]
 	public sealed partial class Sf2File {
 		// <ifil-ck> ; Refers to the version of the Sound Font RIFF file
 		public short majorVersion;
@@ -176,10 +176,10 @@ namespace Midif.V3 {
 
 				var instrumentZoneList = new List<Sf2InstrumentZone>();
 
-				int iZoneCount = instList[j + 1].instBagNdx - instList[j].instBagNdx;
-				for (int k = 0; k < iZoneCount; k += 1) {
-					int iZoneGenStart = ibagList[instList[j].instBagNdx + k].genNdx;
-					int iZoneGenEnd = ibagList[instList[j].instBagNdx + k + 1].genNdx;
+				for (int k = instList[j].instBagNdx; k < instList[j + 1].instBagNdx; k += 1) {
+					int iZoneGenStart = ibagList[k].genNdx;
+					int iZoneGenEnd = ibagList[k + 1].genNdx;
+					if (iZoneGenStart >= iZoneGenEnd) continue;  // must skip if no generator
 
 					// A global zone is determined by the fact that the last generator in the list is not a sampleID generator.
 					if (igenList[iZoneGenEnd - 1].gen != GeneratorType.sampleID) {
@@ -206,10 +206,10 @@ namespace Midif.V3 {
 
 				var presetZoneList = new List<Sf2PresetZone>();
 
-				int pZoneCount = phdrList[j + 1].presetBagNdx - phdrList[j].presetBagNdx;
-				for (int k = 0; k < pZoneCount; k += 1) {
-					int pZoneGenStart = pbagList[phdrList[j].presetBagNdx + k].genNdx;
-					int pZoneGenEnd = pbagList[phdrList[j].presetBagNdx + k + 1].genNdx;
+				for (int k = phdrList[j].presetBagNdx; k < phdrList[j + 1].presetBagNdx; k += 1) {
+					int pZoneGenStart = pbagList[k].genNdx;
+					int pZoneGenEnd = pbagList[k + 1].genNdx;
+					if (pZoneGenStart >= pZoneGenEnd) continue;  // must skip if no generator
 
 					// A global zone is determined by the fact that the last generator in the list is not an Instrument generator.
 					if (pgenList[pZoneGenEnd - 1].gen != GeneratorType.instrument) {
@@ -246,7 +246,7 @@ namespace Midif.V3 {
 		}
 	}
 
-	[System.Serializable]
+	// [System.Serializable]
 	public sealed class Sf2Preset : System.IComparable<Sf2Preset> {
 		public string presetName;
 		public int preset;
@@ -261,13 +261,13 @@ namespace Midif.V3 {
 		}
 	}
 
-	[System.Serializable]
+	// [System.Serializable]
 	public sealed class Sf2PresetZone {
 		public Sf2Zone zone;
 		public Sf2Instrument instrument;
 	}
 
-	[System.Serializable]
+	// [System.Serializable]
 	public sealed class Sf2Instrument {
 		public string instName;
 
