@@ -272,6 +272,7 @@ namespace Midif.V3 {
 
 			public float channelGainLeft;
 			public float channelGainRight;
+			public float channelPitch;
 
 			float attenuation;
 			float gain;
@@ -356,7 +357,7 @@ namespace Midif.V3 {
 				loopEnd = endloop - start;
 				loopDuration = endloop - startloop;
 				phase = startOffset;
-				Console.Log(start, end, startloop, endloop, duration, loopEnd, loopDuration);
+				Console.Log(start, startOffset, end, startloop, endloop, duration, loopEnd, loopDuration);
 
 				short root = gs[GenType.overridingRootKey].value;  // MIDI ky# 
 				short scaleTuning = gs[GenType.scaleTuning].value;  // cent/key
@@ -371,7 +372,7 @@ namespace Midif.V3 {
 				byte bytePan = (byte)(64 + 127 * (pan * .001f));
 				panLeft = table.pan2Left[bytePan];
 				panRight = table.pan2Right[bytePan];
-				Console.Log("\tpan", pan, panLeft, panRight);
+				// Console.Log("\tpan", pan, panLeft, panRight);
 
 				// filter
 				short initialFilterFc = gs[GenType.initialFilterFc].value;  // cent
@@ -450,12 +451,12 @@ namespace Midif.V3 {
 					// Console.Log("\tv", id, "on modEnv", delayModEnv, attackModEnv, holdModEnv, decayModEnv, releaseModEnv, sustainVolEnv);
 				}
 
-				Console.Log("v", id, "on", note, 
-					"vibLfo", vibLfoToPitch, 
-					"modLfo", modLfoToPitch, modLfoToFilterFc, modLfoToVolume, 
-					"modEnv", modEnvToPitch, modEnvToFilterFc, 
-					"useVibLfo", useVibLfo, "useModLfo", useModLfo, "useModEnv", useModEnv, "useFilter", useFilter,
-					"filter", filterFc, initialFilterQ, sample.sampleName);
+				// Console.Log("v", id, "on", note, 
+				// 	"vibLfo", vibLfoToPitch, 
+				// 	"modLfo", modLfoToPitch, modLfoToFilterFc, modLfoToVolume, 
+				// 	"modEnv", modEnvToPitch, modEnvToFilterFc, 
+				// 	"useVibLfo", useVibLfo, "useModLfo", useModLfo, "useModEnv", useModEnv, "useFilter", useFilter,
+				// 	"filter", filterFc, initialFilterQ, sample.sampleName);
 			}
 
 			public void Off() {
@@ -499,13 +500,15 @@ namespace Midif.V3 {
 					buffer[i] += value * channelGainLeft * panLeft;
 					buffer[i + 1] += value * channelGainRight * panRight;
 
+					#if MIDIF_DEBUG_VISUALIZER
 					WaveVisualizer.Inc(0, volEnv.gain * attenuation);
 					WaveVisualizer.Inc(1, modEnv.gain * attenuation);
 					WaveVisualizer.Inc(2, vibLfo.value * attenuation);
 					WaveVisualizer.Inc(3, modLfo.value * attenuation);
 					WaveVisualizer.Inc(5, data[start + (int)phase] * attenuation);
+					#endif
 
-					phase += curStep;
+					phase += curStep * channelPitch;
 					switch (mode) {
 					case Sf2File.SampleMode.contLoop:
 						if (phase > loopEnd) phase -= loopDuration;
@@ -568,17 +571,23 @@ namespace Midif.V3 {
 			}
 		}
 
+		struct Channel {
+			public int presetIndex;
+			public byte bank;
+			public byte program;
+
+			public byte pan;
+			public byte volume;
+			public byte expression;
+			public byte pitchBend;
+		}
+
 		public Sf2File file;
 		public Table table;
 
-		readonly byte[] channelPrograms = new byte[16];
-		readonly byte[] channelPans = new byte[16];
-		readonly byte[] channelVolumes = new byte[16];
-		readonly byte[] channelExpressions = new byte[16];
-		readonly ushort[] channelpitchBends = new ushort[16];
+		readonly Channel[] channels = new Channel[16];
 
 		public float masterGain;
-		public int presetIndex;
 
 		public readonly int voiceCount;
 		readonly Voice[] voices;
@@ -597,23 +606,31 @@ namespace Midif.V3 {
 				voices[i].Init(i, file.data, table);
 			}
 
+			#if MIDIF_DEBUG_VISUALIZER
 			WaveVisualizer.Request(0, 1024);
 			WaveVisualizer.Request(1, 1024);
 			WaveVisualizer.Request(2, 1024);
 			WaveVisualizer.Request(3, 1024);
 			WaveVisualizer.Request(4, 1024);
 			WaveVisualizer.Request(5, 1024);
+			#endif
 
 			Reset();
 		}
 
 		public void Reset() {
 			for (int i = 0; i < 16; i += 1) {
-				channelPans[i] = 64;
-				channelVolumes[i] = 100;
-				channelExpressions[i] = 127;
-				channelpitchBends[i] = 64;
+				channels[i].bank = 0;
+				channels[i].program = 0;
+				channels[i].presetIndex = 0;
+
+				channels[i].pan = 64;
+				channels[i].volume = 100;
+				channels[i].expression = 127;
+				channels[i].pitchBend = 64;
 			}
+			channels[9].bank = 128;
+			channels[9].presetIndex = file.FindPreset(128, 0);
 
 			for (int i = 0; i < voiceCount; i += 1) {
 				voices[i].next = i + 1;
@@ -628,9 +645,9 @@ namespace Midif.V3 {
 		}
 
 		public void NoteOn(int track, byte channel, byte note, byte velocity) {
-			if (channel == 9) return;
+			// if (channel != 10) return;
 
-			var preset = file.presets[presetIndex];
+			var preset = file.presets[channels[channel].presetIndex];
 			for (int i = 0, endI = preset.presetZones.Length; i < endI; i += 1) {
 				var presetZone = preset.presetZones[i];
 				if (!presetZone.zone.Contains(note, velocity)) continue;
@@ -674,7 +691,7 @@ namespace Midif.V3 {
 		}
 
 		public void NoteOff(int track, byte channel, byte note, byte velocity) {
-			if (channel == 9) return;
+			// if (channel != 10) return;
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel && voices[i].note == note) {
@@ -685,23 +702,35 @@ namespace Midif.V3 {
 
 		public void Controller(int track, byte channel, byte controller, byte value) {
 			switch (controller) {
+			case 0:  // bank select
+				// Console.Log("bank select msb", channel, value);
+				break;
+			case 32:  // bank select
+				// Console.Log("bank select lsb", channel, value);
+				break;
 			case 7:  // channel volume
-				channelVolumes[channel] = value;
+				channels[channel].volume = value;
 				UpdateChannelGain(channel);
 				break;
 			case 10:  // pan
-				channelPans[channel] = value;
+				channels[channel].pan = value;
 				UpdateChannelGain(channel);
 				break;
 			case 11:  // expression
-				channelExpressions[channel] = value;
+				channels[channel].expression = value;
 				UpdateChannelGain(channel);
 				break;
 			}
 		}
 
+		public void ProgramChange(int track, byte channel, byte program) {
+			channels[channel].program = program;
+			int presetIndex = file.FindPreset(channels[channel].bank, program);
+			if (presetIndex > 0) channels[channel].presetIndex = presetIndex;
+		}
+
 		public void PitchBend(int track, byte channel, byte lsb, byte msb) {
-			channelpitchBends[channel] = msb;
+			channels[channel].pitchBend = msb;
 			UpdateChannelPitch(channel);
 		}
 
@@ -731,23 +760,29 @@ namespace Midif.V3 {
 		public void Process(float[] buffer) {
 			var sb = new System.Text.StringBuilder();
 
+			#if MIDIF_DEBUG_VISUALIZER
 			WaveVisualizer.Clear(0);
 			WaveVisualizer.Clear(1);
 			WaveVisualizer.Clear(2);
 			WaveVisualizer.Clear(3);
 			WaveVisualizer.Clear(5);
+			#endif
 			for (int j = firstActiveVoice; j != -1; j = voices[j].next) {
 				voices[j].Process(buffer);
+				#if MIDIF_DEBUG_VISUALIZER
 				WaveVisualizer.SetI(0, 0);
 				WaveVisualizer.SetI(1, 0);
 				WaveVisualizer.SetI(2, 0);
 				WaveVisualizer.SetI(3, 0);
 				WaveVisualizer.SetI(5, 0);
+				#endif
 			}
 
+			#if MIDIF_DEBUG_VISUALIZER
 			for (int i = 0, length = buffer.Length; i < length; i += 2) {
 				WaveVisualizer.Push(4, buffer[i]);
 			}
+			#endif
 
 			Panic();
 		}
@@ -755,12 +790,12 @@ namespace Midif.V3 {
 		void UpdateVoiceGain(int i) {
 			int channel = voices[i].channel;
 
-			byte pan = channelPans[channel];
-			byte volume = channelVolumes[channel];
-			byte expression = channelExpressions[channel];
+			byte pan = channels[channel].pan;
+			byte volume = channels[channel].volume;
+			byte expression = channels[channel].expression;
 			float channelGain = masterGain * table.volm2Gain[volume] * table.volm2Gain[expression];
-			float channelGainLeft=  channelGain * table.pan2Left[pan];
-			float channelGainRight=  channelGain * table.pan2Right[pan];
+			float channelGainLeft = channelGain * table.pan2Left[pan];
+			float channelGainRight = channelGain * table.pan2Right[pan];
 
 			// float gain = table.volm2Gain[voices[i].velocity];
 			float gain = voices[i].velocity * Table.VelcRecip;
@@ -770,12 +805,12 @@ namespace Midif.V3 {
 		}
 
 		void UpdateChannelGain(int channel) {
-			byte pan = channelPans[channel];
-			byte volume = channelVolumes[channel];
-			byte expression = channelExpressions[channel];
+			byte pan = channels[channel].pan;
+			byte volume = channels[channel].volume;
+			byte expression = channels[channel].expression;
 			float channelGain = masterGain * table.volm2Gain[volume] * table.volm2Gain[expression];
-			float channelGainLeft=  channelGain * table.pan2Left[pan];
-			float channelGainRight=  channelGain * table.pan2Right[pan];
+			float channelGainLeft = channelGain * table.pan2Left[pan];
+			float channelGainRight = channelGain * table.pan2Right[pan];
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel) {
@@ -789,15 +824,17 @@ namespace Midif.V3 {
 		}
 
 		void UpdateVoicePitch(int i) {
-			float channelPitch = table.bend2Pitch[channelpitchBends[voices[i].channel]];
-
+			float channelPitch = table.bend2Pitch[channels[voices[i].channel].pitchBend];
+			
+			voices[i].channelPitch = channelPitch;
 		}
 
 		void UpdateChannelPitch(int channel) {
-			float channelPitch = table.bend2Pitch[channelpitchBends[channel]];
+			float channelPitch = table.bend2Pitch[channels[channel].pitchBend];
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel) {
+					voices[i].channelPitch = channelPitch;
 				}
 			}
 		}

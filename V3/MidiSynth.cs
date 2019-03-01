@@ -264,6 +264,9 @@ namespace Midif.V3 {
 			}
 		}
 
+		public void ProgramChange(int track, byte channel, byte program) {
+		}
+
 		public void PitchBend(int track, byte channel, byte lsb, byte msb) {
 			channelpitchBends[channel] = msb;
 			UpdateChannelPitch(channel);

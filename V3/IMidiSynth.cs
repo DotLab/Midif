@@ -3,6 +3,7 @@
 		void NoteOff(int track, byte channel, byte note, byte velocity);
 		void NoteOn(int track, byte channel, byte note, byte velocity);
 		void Controller(int track, byte channel, byte controller, byte value);
+		void ProgramChange(int track, byte channel, byte program);
 		void PitchBend(int track, byte channel, byte lsb, byte msb);
 
 		void Reset();

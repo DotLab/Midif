@@ -65,18 +65,18 @@ namespace Midif.V3 {
 				// 24-bit value specifying the tempo as the number of microseconds per beat
 				int microsecondsPerBeat = BitBe.ReadInt24(file.bytes, ref i);
 				beatsPerSecond = (1000000.0 / (double)microsecondsPerBeat);
-				// Debug.LogFormat("meta: {0} tempo {1}", track, microsecondsPerBeat);
+				// Debug.LogFormat("meta: {0} tempo", microsecondsPerBeat);
 			}
 
 			byte channel = (byte)(e.status & 0xf);
 
 			switch (e.status >> 4) {
 			case 0x8:  // note off
-				// Debug.LogFormat("note off: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
+				// Debug.LogFormat("note off: {0} {1} {2}", channel, e.b1, e.b2);
 				synth.NoteOff(track, channel, e.b1, e.b2);
 				break;
 			case 0x9:  // note on
-				// Debug.LogFormat("note on: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
+				// Debug.LogFormat("note on: {0} {1} {2}", channel, e.b1, e.b2);
 				if (e.b2 == 0) {
 					synth.NoteOff(track, channel, e.b1, 0);
 				} else {
@@ -84,24 +84,25 @@ namespace Midif.V3 {
 				}
 				break;
 			case 0xa:  // aftertouch
-				// Debug.LogFormat("aftertouch: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
+				// Debug.LogFormat("aftertouch: {0} {1} {2}", channel, e.b1, e.b2);
 				break;
 			case 0xb:  // controller
-				// Debug.LogFormat("controller: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
+				// Debug.LogFormat("controller: {0} {1} {2}", channel, e.b1, e.b2);
 				synth.Controller(track, channel, e.b1, e.b2);
 				break;
 			case 0xc:  // program change
-				// Debug.LogFormat("program change: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
+				Debug.LogFormat("program change: {0} {1}", channel, e.b1);
+				synth.ProgramChange(track, channel, e.b1);
 				break;
 			case 0xd:  // channel pressure
-				// Debug.LogFormat("channel pressure: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
+				// Debug.LogFormat("channel pressure: {0} {1} {2}", channel, e.b1, e.b2);
 				break;
 			case 0xe:  // pitch bend
-				// Debug.LogFormat("pitch bend: {0} {1} {2} {3}", track, channel, e.b1, e.b2);
+				// Debug.LogFormat("pitch bend: {0} {1} {2}", channel, e.b1, e.b2);
 				synth.PitchBend(track, channel, e.b1, e.b2);
 				break;
 			default:
-				// Debug.LogFormat("?: {0} 0x{1:X} 0x{2:X} 0x{3:X} 0x{4:X}", track, e.status, e.type, e.b1, e.b2);
+				// Debug.LogFormat("?: {0} 0x{1:X} 0x{2:X} 0x{3:X} 0x{", e.status, e.type, e.b1, e.b2);
 				break;
 			}
 		}

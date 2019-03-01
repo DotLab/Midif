@@ -468,10 +468,10 @@ namespace Midif.V3 {
 		void Clamp(int type, short min, short max) {
 			if (gens[type].flag) {
 				if (gens[type].value < min) {
-					Console.Log("clamp < min", type, gens[type].value, min, max);
+//					Console.Log("clamp < min", type, gens[type].value, min, max);
 					gens[type].value = min;
 				} else if (gens[type].value > max) {
-					Console.Log("clamp > max", type, gens[type].value, min, max);
+//					Console.Log("clamp > max", type, gens[type].value, min, max);
 					gens[type].value = max;
 				}
 			}
