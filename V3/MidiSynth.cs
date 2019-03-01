@@ -171,7 +171,7 @@ namespace Midif.V3 {
 		public EnvelopeConfig envelopeConfig;
 
 		public MidiSynth(Table table, float sampleRate, int voiceCount) {
-			WaveVisualizer.Data = new float[(int)sampleRate];
+			WaveVisualizer.Request(0, 1024);
 
 			this.table = table;
 
@@ -309,7 +309,7 @@ namespace Midif.V3 {
 				data[i] = left;
 				data[i + 1] = right;
 				
-				WaveVisualizer.Push(left);
+				WaveVisualizer.Push(0, left);
 			}
 
 			Panic();

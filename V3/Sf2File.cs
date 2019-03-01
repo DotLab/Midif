@@ -240,13 +240,23 @@ namespace Midif.V3 {
 			return -1;
 		}
 
-		public static Sf2Zone GetAppliedZone(Sf2Zone pGlobalZone, Sf2Zone pZone, Sf2Zone iGlobalZone, Sf2Zone iZone) {
+		public static Sf2Zone GetAppliedZone(Sf2Zone iGlobalZone, Sf2Zone iZone, Sf2Zone pGlobalZone, Sf2Zone pZone) {
 			var zone = new Sf2Zone();
 			zone.Default();
 			if (iGlobalZone != null) zone.Set(iGlobalZone);
 			zone.Set(iZone);
-			if (pGlobalZone != null) zone.Add(pGlobalZone);
-			zone.Add(pZone);
+
+			/**
+			 * SF 2.01 Page 65
+			 * A generator in a local preset zone that is identical to a generator in a global preset zone
+			 * supersedes or replaces that generator in the global preset zone. That generator then has its
+			 * effects added to the destination-summing node of all zones in the given instrument.
+ 			 */
+			var zone2 = new Sf2Zone();
+			if (pGlobalZone != null) zone2.Set(pGlobalZone);
+			zone2.Set(pZone);
+
+			zone.Add(zone2);
 			return zone;
 		}
 
@@ -343,6 +353,11 @@ namespace Midif.V3 {
 		}
 
 		public void Add(Sf2Zone z) {
+			/**
+			 * If the generator operator is a Range Generator, the generator values are NOT ADDED to
+			 * those in the instrument level, rather they serve as an intersection filter to those key number or
+			 * velocity ranges in the instrument that is used in the preset zone.
+			 */
 			if (noteLo < z.noteLo) noteLo = z.noteLo;
 			if (z.noteHi < noteHi) noteHi = z.noteHi;
 			if (velocityLo < z.velocityLo) velocityLo = z.velocityLo;
