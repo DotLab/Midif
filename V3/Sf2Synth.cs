@@ -270,11 +270,13 @@ namespace Midif.V3 {
 			public byte velocity;
 			public byte channel;
 
-			public float gainLeft;
-			public float gainRight;
+			public float channelGainLeft;
+			public float channelGainRight;
 
-			public float gain;
-			public float curGain;
+			float attenuation;
+			float gain;
+			float panLeft;
+			float panRight;
 
 			Lfo vibLfo;
 			Lfo modLfo;
@@ -363,7 +365,13 @@ namespace Midif.V3 {
 					* table.semi2Pitch[Table.Semi2PitchCenter + gs[GenType.coarseTune].value] 
 					* (float)Table.Cent2Pitch((note - root) * scaleTuning + sample.correction + gs[GenType.fineTune].value);
 				mode = gs[GenType.sampleModes].value;
-				gain = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);  // cB
+				attenuation = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);  // cB
+
+				short pan = gs[GenType.pan].value;  // 0.1%
+				byte bytePan = (byte)(64 + 127 * (pan * .001f));
+				panLeft = table.pan2Left[bytePan];
+				panRight = table.pan2Right[bytePan];
+				Console.Log("\tpan", pan, panLeft, panRight);
 
 				// filter
 				short initialFilterFc = gs[GenType.initialFilterFc].value;  // cent
@@ -487,15 +495,15 @@ namespace Midif.V3 {
 					// filter even when fc > 13500 (set fc = 13500 when that happens) so that filter is always ready
 					 if (useFilter) value = filter.Process(value);
 
-					value = value * curGain;
-					buffer[i] += value * gainLeft;
-					buffer[i + 1] += value * gainRight;
+					value = value * gain;
+					buffer[i] += value * channelGainLeft * panLeft;
+					buffer[i + 1] += value * channelGainRight * panRight;
 
-					WaveVisualizer.Inc(0, volEnv.gain * gain);
-					WaveVisualizer.Inc(1, modEnv.gain * gain);
-					WaveVisualizer.Inc(2, vibLfo.value * gain);
-					WaveVisualizer.Inc(3, modLfo.value * gain);
-					WaveVisualizer.Inc(5, data[start + (int)phase] * gain);
+					WaveVisualizer.Inc(0, volEnv.gain * attenuation);
+					WaveVisualizer.Inc(1, modEnv.gain * attenuation);
+					WaveVisualizer.Inc(2, vibLfo.value * attenuation);
+					WaveVisualizer.Inc(3, modLfo.value * attenuation);
+					WaveVisualizer.Inc(5, data[start + (int)phase] * attenuation);
 
 					phase += curStep;
 					switch (mode) {
@@ -554,8 +562,8 @@ namespace Midif.V3 {
 				}
 
 				if (envFlag || (lfoFlag && useModLfoToVolume)) {
-					curGain = gain * volEnv.gain;
-					if (useModLfoToVolume) curGain *= (float)Table.Db2Gain(modLfoToVolume * .1 * modLfo.value);
+					gain = attenuation * volEnv.gain;
+					if (useModLfoToVolume) gain *= (float)Table.Db2Gain(modLfoToVolume * .1 * modLfo.value);
 				}
 			}
 		}
@@ -757,8 +765,8 @@ namespace Midif.V3 {
 			// float gain = table.volm2Gain[voices[i].velocity];
 			float gain = voices[i].velocity * Table.VelcRecip;
 			// float gain = 1;
-			voices[i].gainLeft = channelGainLeft * gain;
-			voices[i].gainRight = channelGainRight * gain;
+			voices[i].channelGainLeft = channelGainLeft * gain;
+			voices[i].channelGainRight = channelGainRight * gain;
 		}
 
 		void UpdateChannelGain(int channel) {
@@ -774,8 +782,8 @@ namespace Midif.V3 {
 					// float gain = table.volm2Gain[voices[i].velocity];
 					float gain = voices[i].velocity * Table.VelcRecip;
 					// float gain = 1;
-					voices[i].gainLeft = channelGainLeft * gain;
-					voices[i].gainRight = channelGainRight * gain;
+					voices[i].channelGainLeft = channelGainLeft * gain;
+					voices[i].channelGainRight = channelGainRight * gain;
 				}
 			}
 		}
