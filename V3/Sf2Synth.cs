@@ -184,35 +184,44 @@ namespace Midif.V3 {
 
 		struct Filter {
 			public float fc, q;
-    		float a1, a2, b1, b2;
-    		public float h1, h2;
+			double a1, a2, b1, b2;
+			public double h1, h2;
+			double gain;
 
 			public void Set(Table table, float fc, float q) {
-				//  Console.Log("\tfilter set fc", this.fc , "->", fc, "q", this.q, "->", q);
+				// Console.Log("\tfilter set fc", this.fc , "->", fc, "q", this.q, "->", q);
 				this.fc = fc;
 				this.q  = q;
+
+				// https://github.com/FluidSynth/fluidsynth/blob/29c668683f43e3b8b4aab0b8aa73cb02aacd6fcb/src/rvoice/fluid_iir_filter.c#L382
+				// filter will defunct in 22050Hz sample rate
+				float maxFc = .45f * table.sampleRate;
+				if (fc > maxFc) fc = maxFc;
+				else if (fc < 5) fc = 5;
+
+				gain = 1.0 / Math.Sqrt(q);
 
 				// https://github.com/FluidSynth/fluidsynth/blob/29c668683f43e3b8b4aab0b8aa73cb02aacd6fcb/src/rvoice/fluid_iir_filter.c#L278
 				// previous simple bipolar lowpass is faulty when fc is large and should not be used:
 				// http://www.earlevel.com/main/2012/11/26/biquad-c-source-code/
-				float omega = Table.Pi2 * fc * table.sampleRateRecip;
-				float sin = (float)Math.Sin(omega);
-				float cos = (float)Math.Cos(omega);
-				float alpha = sin / (2f * q);
-				float a0Recip = 1f / (1 + alpha);
+				double omega = Table.Pi2 * fc * table.sampleRateRecip;
+				double sin = Math.Sin(omega);
+				double cos = Math.Cos(omega);
+				double alpha = sin / (2f * q);
+				double a0Recip = 1f / (1 + alpha);
 
 				a1 = -2f * cos * a0Recip;
 				a2 = (1f - alpha) * a0Recip;
-				b1 = (1f - cos) * a0Recip;
+				b1 = (1f - cos) * a0Recip * gain;
 				b2 = b1 * .5f; 
 			}
 
 			public float Process(float i) {
-                float centerNode = i - a1 * h1 - a2 * h2;
-                float o = b2 * (centerNode + h2) + b1 * h1;
-                h2 = h1;
-                h1 = centerNode;
-				return o;
+				double centerNode = i - a1 * h1 - a2 * h2;
+				double o = b2 * (centerNode + h2) + b1 * h1;
+				h2 = h1;
+				h1 = centerNode;
+				return (float)o;
 			}
 		}
 
@@ -357,7 +366,7 @@ namespace Midif.V3 {
 				loopEnd = endloop - start;
 				loopDuration = endloop - startloop;
 				phase = startOffset;
-				Console.Log(start, startOffset, end, startloop, endloop, duration, loopEnd, loopDuration);
+				// Console.Log(start, startOffset, end, startloop, endloop, duration, loopEnd, loopDuration);
 
 				short root = gs[GenType.overridingRootKey].value;  // MIDI ky# 
 				short scaleTuning = gs[GenType.scaleTuning].value;  // cent/key
@@ -379,7 +388,7 @@ namespace Midif.V3 {
 				short initialFilterQ = gs[GenType.initialFilterQ].value;  // cB
 				filterFc = (float)Table.AbsCent2Freq(initialFilterFc);
 				filter.h1 = filter.h2 = 0;
-				filter.Set(table, filterFc > 13500 ? 13500 : filterFc, (float)Table.Db2Gain(initialFilterQ * .1));
+				filter.Set(table, filterFc, (float)Table.Db2Gain(initialFilterQ * .1 - 3.01));
 				// useFilter may be set by modLfo and/or modEnv if they set the fc, so just init whatsoever
 				useFilter = initialFilterFc < 13500;
 
@@ -456,7 +465,7 @@ namespace Midif.V3 {
 				// 	"modLfo", modLfoToPitch, modLfoToFilterFc, modLfoToVolume, 
 				// 	"modEnv", modEnvToPitch, modEnvToFilterFc, 
 				// 	"useVibLfo", useVibLfo, "useModLfo", useModLfo, "useModEnv", useModEnv, "useFilter", useFilter,
-				// 	"filter", filterFc, initialFilterQ, sample.sampleName);
+				// 	"filter", filterFc, filter.q, sample.sampleName);
 			}
 
 			public void Off() {
@@ -491,6 +500,7 @@ namespace Midif.V3 {
 						uint uintPhase = (uint)phase;
 						float ut = (float)(phase - uintPhase);
 						value = data[start + uintPhase] * (1f - ut) + data[start + uintPhase + 1] * ut;
+						//						Console.Log(phase, uintPhase, ut);
 					}
 
 					// filter even when fc > 13500 (set fc = 13500 when that happens) so that filter is always ready
@@ -501,8 +511,8 @@ namespace Midif.V3 {
 					buffer[i + 1] += value * channelGainRight * panRight;
 
 					#if MIDIF_DEBUG_VISUALIZER
-					WaveVisualizer.Inc(0, volEnv.gain * attenuation);
-					WaveVisualizer.Inc(1, modEnv.gain * attenuation);
+					WaveVisualizer.Inc(0, filter.h1 * attenuation);
+					WaveVisualizer.Inc(1, filter.h2 * attenuation);
 					WaveVisualizer.Inc(2, vibLfo.value * attenuation);
 					WaveVisualizer.Inc(3, modLfo.value * attenuation);
 					WaveVisualizer.Inc(5, data[start + (int)phase] * attenuation);
@@ -548,8 +558,8 @@ namespace Midif.V3 {
 					float curFilterFc = filterFc;
 					if (useModLfoToFilterFc) curFilterFc *= (float)Table.Cent2Pitch(modLfoToFilterFc * modLfo.value);
 					if (useModEnvToFilterFc) curFilterFc *= (float)Table.Cent2Pitch(modEnvToFilterFc * modEnv.gain);
-					// filter will become super unstable if fc > 13500, so just set it back to 13500Hz
-					if (curFilterFc > 13500) curFilterFc = 13500;
+					// filter will become super unstable if fc > 20000, so just set it back to 20000Hz
+					if (curFilterFc > 20000) curFilterFc = 20000;
 					// float diff = (float)Math.Abs(curFilterFc - filter.fc);
 					float diff = curFilterFc - filter.fc;
 					if (diff < 0) diff = -diff;
