@@ -70,7 +70,7 @@ namespace Midif.V3 {
 			}
 		}
 
-		public struct Envelope {
+		struct Envelope {
 			public const int StageDelay = 0;
 			public const int StageAttack = 1;
 			public const int StageHold = 2;
@@ -82,21 +82,21 @@ namespace Midif.V3 {
 			public string name;
 
 			// duration in samples
-			public int delayTime;
-			public int attackTime;
-			public int holdTime;
-			public int decayTime;
-			public int releaseTime;
+			int delayTime;
+			int attackTime;
+			int holdTime;
+			int decayTime;
+			int releaseTime;
 
-			public float sustainGain;
+			float sustainGain;
 
 			public byte stage;
 
 			public float gain;
-			public float gainStep;
+			float gainStep;
 
-			public int time;
-			public int stageTime;
+			int time;
+			int stageTime;
 
 			public void On(Table table, float delay, float attack, float hold, float decay, float release, float sustainGain) {
 				this.sustainGain = sustainGain;
@@ -182,9 +182,9 @@ namespace Midif.V3 {
 			}
 		}
 
-		public struct Filter {
+		struct Filter {
 			public float fc, q;
-    		public float a1, a2, b1, b2;
+    		float a1, a2, b1, b2;
     		public float h1, h2;
 
 			public void Set(Table table, float fc, float q) {
@@ -216,12 +216,12 @@ namespace Midif.V3 {
 			}
 		}
 
-		public struct Lfo {
+		struct Lfo {
 			public string name;
 
-			public float step;
-			public int delayTime;
-			public double phase;
+			float step;
+			int delayTime;
+			double phase;
 			public float value;
 
 			public void On(Table table, float delay, float freq) {
@@ -258,10 +258,10 @@ namespace Midif.V3 {
 			}
 		}
 
-		public struct Voice {
-			public const byte ModeNoLoop = 0;
-			public const byte ModeContinuousLoop = 1;
-			public const byte ModeLoopProceed = 3;
+		struct Voice {
+			const byte ModeNoLoop = 0;
+			const byte ModeContinuousLoop = 1;
+			const byte ModeLoopProceed = 3;
 
 			public int id;
 			public int next;
@@ -276,52 +276,63 @@ namespace Midif.V3 {
 			public float gain;
 			public float curGain;
 
-			public Lfo vibLfo;
-			public Lfo modLfo;
-			public bool useVibLfo; 
-			public bool useModLfo;
-			public bool useModLfoToPitch;
-			public bool useModLfoToFilterFc;
-			public bool useModLfoToVolume;
-			public short vibLfoToPitch;
-			public short modLfoToPitch;
-			public short modLfoToFilterFc;
-			public short modLfoToVolume;
+			Lfo vibLfo;
+			Lfo modLfo;
+			bool useVibLfo; 
+			bool useModLfo;
+			bool useModLfoToPitch;
+			bool useModLfoToFilterFc;
+			bool useModLfoToVolume;
+			short vibLfoToPitch;
+			short modLfoToPitch;
+			short modLfoToFilterFc;
+			short modLfoToVolume;
 
-			public Filter filter;
-			public bool useFilter;
-			public float filterFc;
+			Filter filter;
+			bool useFilter;
+			float filterFc;
 
-			public Envelope volEnv;
-			public Envelope modEnv;
-			public bool useModEnv;
-			public bool useModEnvToPitch;
-			public bool useModEnvToFilterFc;
-			public short modEnvToPitch;
-			public short modEnvToFilterFc;
+			Envelope volEnv;
+			Envelope modEnv;
+			bool useModEnv;
+			bool useModEnvToPitch;
+			bool useModEnvToFilterFc;
+			short modEnvToPitch;
+			short modEnvToFilterFc;
 
 			public float[] data;
 			public Table table;
 
-			public short mode;
-			public uint start;
-			public uint duration;
-			public uint loopEnd;
-			public uint loopDuration;
+			short mode;
+			uint start;
+			uint duration;
+			uint loopEnd;
+			uint loopDuration;
 
-			public float step;
-			public float curStep;
-			public double phase;
+			float step;
+			float curStep;
+			double phase;
 
-			public int count;
-			public int lastLfoCount;
-			public int lastEnvCount;
-			public int lfoMask;
-			public int envMask;
+			int count;
+			int lastLfoCount;
+			int lastEnvCount;
+			int lfoMask;
+			int envMask;
 
-			public bool killed;
+			bool killed;
 
-			public void On(Table table, Sf2File.SampleHeader sample, Sf2Zone zone) {
+			public void Init(int id, float[] data, Table table) {
+				this.id = id;
+				this.data = data;
+				this.table = table;
+
+				volEnv.name = "vol";
+				modEnv.name = "mod";
+				vibLfo.name = "vib";
+				modLfo.name = "mod";
+			}
+
+			public void On(Sf2File.SampleHeader sample, Sf2Zone zone) {
 				count = lastLfoCount = lastEnvCount = 0;
 				// when (count & xxxMask) == 0, update xxx and xxx's dependents
 				lfoMask = 0xff;
@@ -363,8 +374,8 @@ namespace Midif.V3 {
 				vibLfoToPitch = gs[GenType.vibLfoToPitch].value;  // cent fs
 				if (vibLfoToPitch != 0) {
 					useVibLfo = true;
-					short delayVibLfo = gs[GenType.delayVibLFO].value;  // timecent
-					short freqVibLfo = gs[GenType.freqVibLFO].value;  // cent
+					short delayVibLfo = gs[GenType.delayVibLfo].value;  // timecent
+					short freqVibLfo = gs[GenType.freqVibLfo].value;  // cent
 					vibLfo.On(table, (float)Table.Timecent2Sec(delayVibLfo), (float)Table.AbsCent2Freq(freqVibLfo));
 				} else {
 					useVibLfo = false;
@@ -381,8 +392,8 @@ namespace Midif.V3 {
 				if (useModLfo) {
 					// modLfo affects filter, so use filter
 					if (useModLfoToFilterFc) useFilter = true; 
-					short delayModLfo = gs[GenType.delayModLFO].value;  // timecent
-					short freqModLfo = gs[GenType.freqModLFO].value;  // cent
+					short delayModLfo = gs[GenType.delayModLfo].value;  // timecent
+					short freqModLfo = gs[GenType.freqModLfo].value;  // cent
 					modLfo.On(table, (float)Table.Timecent2Sec(delayModLfo), (float)Table.AbsCent2Freq(freqModLfo));
 				}
 
@@ -399,8 +410,8 @@ namespace Midif.V3 {
 					(float)Table.Timecent2Sec(holdVolEnv),
 					(float)Table.Timecent2Sec(decayVolEnv),
 					(float)Table.Timecent2Sec(releaseVolEnv),
-					(float)Table.Db2Gain(-sustainVolEnv * .1));
-				Console.Log("v", id, "on volEnv", delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, releaseVolEnv);
+					(float)Table.Db2Gain(-(double)sustainVolEnv * .1));
+				Console.Log("\tv", id, "on volEnv", delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, releaseVolEnv, sustainVolEnv, -(double)sustainVolEnv * .1, Table.Db2Gain(-(double)sustainVolEnv * .1));
 
 				// modEnv
 				modEnvToPitch = gs[GenType.modEnvToPitch].value;  // cent fs
@@ -423,8 +434,8 @@ namespace Midif.V3 {
 						(float)Table.Timecent2Sec(holdModEnv),
 						(float)Table.Timecent2Sec(decayModEnv),
 						(float)Table.Timecent2Sec(releaseModEnv),
-						(float)Table.Db2Gain(-sustainModEnv * .1));
-					Console.Log("v", id, "on modEnv", delayModEnv, attackModEnv, holdModEnv, decayModEnv, releaseModEnv);
+						(float)Table.Db2Gain(-(double)sustainModEnv * .1));
+					Console.Log("\tv", id, "on modEnv", delayModEnv, attackModEnv, holdModEnv, decayModEnv, releaseModEnv, sustainVolEnv);
 				}
 
 				Console.Log("v", id, "on", note, 
@@ -443,6 +454,10 @@ namespace Midif.V3 {
 			public void Kill() {
 				volEnv.Kill();
 				killed = true;
+			}
+
+			public bool IsFinished() {
+				return volEnv.stage == Envelope.StageDone;
 			}
 
 			public void Process(float[] buffer) {
@@ -543,19 +558,19 @@ namespace Midif.V3 {
 		public Sf2File file;
 		public Table table;
 
-		public readonly byte[] channelPrograms = new byte[16];
-		public readonly byte[] channelPans = new byte[16];
-		public readonly byte[] channelVolumes = new byte[16];
-		public readonly byte[] channelExpressions = new byte[16];
-		public readonly ushort[] channelpitchBends = new ushort[16];
+		readonly byte[] channelPrograms = new byte[16];
+		readonly byte[] channelPans = new byte[16];
+		readonly byte[] channelVolumes = new byte[16];
+		readonly byte[] channelExpressions = new byte[16];
+		readonly ushort[] channelpitchBends = new ushort[16];
 
 		public float masterGain;
 		public int presetIndex;
 
 		public readonly int voiceCount;
-		public readonly Voice[] voices;
-		public int firstFreeVoice;
-		public int firstActiveVoice;
+		readonly Voice[] voices;
+		int firstFreeVoice;
+		int firstActiveVoice;
 
 		public Sf2Synth(Sf2File file, Table table, int voiceCount) {
 			this.file = file;
@@ -566,13 +581,7 @@ namespace Midif.V3 {
 			this.voiceCount = voiceCount;
 			voices = new Voice[voiceCount];
 			for (int i = 0; i < voiceCount; i += 1) {
-				voices[i].id = i;
-				voices[i].data = file.data;
-				voices[i].table = table;
-				voices[i].volEnv.name = "vol";
-				voices[i].modEnv.name = "mod";
-				voices[i].vibLfo.name = "vib";
-				voices[i].modLfo.name = "mod";
+				voices[i].Init(i, file.data, table);
 			}
 
 			WaveVisualizer.Request(0, 1024);
@@ -617,9 +626,8 @@ namespace Midif.V3 {
 				for (int j = 0, endJ = instrument.instrumentZones.Length; j < endJ; j += 1) {
 					var instrumentZone = instrument.instrumentZones[j];
 					if (!instrumentZone.zone.Contains(note, velocity)) continue;
-					if (instrumentZone.sampleHeader.sampleName != "Windchimes") continue;
-
-					// Console.Log("synth noteon", note, velocity, "preset", preset.presetName, "instrument", instrument.instName, "sample", instrumentZone.sampleHeader.sampleName);
+if (instrumentZone.sampleHeader.sampleName != "Stacked Saw-C4") continue;
+					//  Console.Log("synth noteon", note, velocity, "preset", preset.presetName, "instrument", instrument.instName, "sample", instrumentZone.sampleHeader.sampleName);
 					var zone = Sf2File.GetAppliedZone(instrument.globalZone, instrumentZone.zone, preset.globalZone, presetZone.zone);
 
 					int k = firstFreeVoice;
@@ -644,7 +652,7 @@ namespace Midif.V3 {
 					voices[k].velocity = velocity;
 					voices[k].channel = channel;
 
-					voices[k].On(table, instrumentZone.sampleHeader, zone);
+					voices[k].On(instrumentZone.sampleHeader, zone);
 
 					UpdateVoicePitch(k);
 					UpdateVoiceGain(k);
@@ -694,7 +702,7 @@ namespace Midif.V3 {
 
 		public void Panic() {
 			for (int prev = -1, i = firstActiveVoice; i != -1;) {
-				if (voices[i].volEnv.stage == Envelope.StageDone) {
+				if (voices[i].IsFinished()) {
 					if (prev != -1) voices[prev].next = voices[i].next; else firstActiveVoice = voices[i].next;
 					int next = voices[i].next;
 					voices[i].next = firstFreeVoice;

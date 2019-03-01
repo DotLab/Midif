@@ -251,10 +251,10 @@ namespace Midif.V3 {
 			// Unused
 			// Unused
 			// Unused
-			public const int delayModLFO = 21;                 // Modulation LFO delay
-			public const int freqModLFO = 22;                  // Modulation LFO frequency
-			public const int delayVibLFO = 23;                 // Vibrato LFO delay
-			public const int freqVibLFO = 24;                  // Vibrato LFO frequency
+			public const int delayModLfo = 21;                 // Modulation LFO delay
+			public const int freqModLfo = 22;                  // Modulation LFO frequency
+			public const int delayVibLfo = 23;                 // Vibrato LFO delay
+			public const int freqVibLfo = 24;                  // Vibrato LFO frequency
 			public const int delayModEnv = 25;                 // Modulation envelope delay
 			public const int attackModEnv = 26;                // Modulation envelope attack
 			public const int holdModEnv = 27;                  // Modulation envelope hold
@@ -283,7 +283,7 @@ namespace Midif.V3 {
 			public const int endloopAddrsCoarseOffset = 50;    // Sample end loop address coarse offset (X 32768)
 			public const int coarseTune = 51;                  // Coarse tuning
 			public const int fineTune = 52;                    // Fine tuning
-			public const int sampleID = 53;                    // Sample ID (shouldn't be set by user)
+			public const int sampleId = 53;                    // Sample ID (shouldn't be set by user)
 			public const int sampleModes = 54;                 // Sample mode flags
 			// Reserved
 			public const int scaleTuning = 56;                 // Scale tuning

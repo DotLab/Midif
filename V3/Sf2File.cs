@@ -182,7 +182,7 @@ namespace Midif.V3 {
 					if (iZoneGenStart >= iZoneGenEnd) continue;  // must skip if no generator
 
 					// A global zone is determined by the fact that the last generator in the list is not a sampleID generator.
-					if (igenList[iZoneGenEnd - 1].gen != GeneratorType.sampleID) {
+					if (igenList[iZoneGenEnd - 1].gen != GeneratorType.sampleId) {
 						instruments[j].globalZone = new Sf2Zone(igenList, iZoneGenStart, iZoneGenEnd);
 						continue;
 					}
@@ -241,6 +241,13 @@ namespace Midif.V3 {
 		}
 
 		public static Sf2Zone GetAppliedZone(Sf2Zone iGlobalZone, Sf2Zone iZone, Sf2Zone pGlobalZone, Sf2Zone pZone) {
+			short v1 = 0, v2 = 0, v3 = 0, v4 = 0;
+			if (iGlobalZone != null) v1 = iGlobalZone.gens[GeneratorType.sustainVolEnv].value;
+			v2 = iZone.gens[GeneratorType.sustainVolEnv].value;
+			if (pGlobalZone != null) v2 = pGlobalZone.gens[GeneratorType.sustainVolEnv].value;
+			v4 = pZone.gens[GeneratorType.sustainVolEnv].value;
+			Console.Log(v1, v2, v3, v4);
+
 			var zone = new Sf2Zone();
 			zone.Default();
 			if (iGlobalZone != null) zone.Set(iGlobalZone);
@@ -371,14 +378,18 @@ namespace Midif.V3 {
 			}
 		}
 
+		public void Clamp() {
+			
+		}
+
 		public bool Contains(byte note, byte velocity) {
 			return noteLo <= note && note <= noteHi && velocityLo <= velocity && velocity <= velocityHi;
 		}
 
 		public void Default() {
 			gens[Sf2File.GeneratorType.initialFilterFc].value = 13500;
-			gens[Sf2File.GeneratorType.delayModLFO].value = -12000;
-			gens[Sf2File.GeneratorType.delayVibLFO].value = -12000;
+			gens[Sf2File.GeneratorType.delayModLfo].value = -12000;
+			gens[Sf2File.GeneratorType.delayVibLfo].value = -12000;
 			gens[Sf2File.GeneratorType.delayModEnv].value = -12000;
 			gens[Sf2File.GeneratorType.attackModEnv].value = -12000;
 			gens[Sf2File.GeneratorType.holdModEnv].value = -12000;
