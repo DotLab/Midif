@@ -243,12 +243,12 @@ namespace Midif.V3 {
 		}
 
 		public static Sf2Zone GetAppliedZone(Sf2Zone iGlobalZone, Sf2Zone iZone, Sf2Zone pGlobalZone, Sf2Zone pZone) {
-			short v1 = 0, v2 = 0, v3 = 0, v4 = 0;
-			if (iGlobalZone != null) v1 = iGlobalZone.gens[GeneratorType.sustainVolEnv].value;
-			v2 = iZone.gens[GeneratorType.sustainVolEnv].value;
-			if (pGlobalZone != null) v2 = pGlobalZone.gens[GeneratorType.sustainVolEnv].value;
-			v4 = pZone.gens[GeneratorType.sustainVolEnv].value;
-			Console.Log(v1, v2, v3, v4);
+			// short v1 = 0, v2 = 0, v3 = 0, v4 = 0;
+			// if (iGlobalZone != null) v1 = iGlobalZone.gens[GeneratorType.sustainVolEnv].value;
+			// v2 = iZone.gens[GeneratorType.sustainVolEnv].value;
+			// if (pGlobalZone != null) v2 = pGlobalZone.gens[GeneratorType.sustainVolEnv].value;
+			// v4 = pZone.gens[GeneratorType.sustainVolEnv].value;
+			// Console.Log(v1, v2, v3, v4);
 
 			var zone = new Sf2Zone();
 			zone.Default();
@@ -468,10 +468,10 @@ namespace Midif.V3 {
 		void Clamp(int type, short min, short max) {
 			if (gens[type].flag) {
 				if (gens[type].value < min) {
-//					Console.Log("clamp < min", type, gens[type].value, min, max);
+					Console.Log("clamp < min", type, gens[type].value, min, max);
 					gens[type].value = min;
 				} else if (gens[type].value > max) {
-//					Console.Log("clamp > max", type, gens[type].value, min, max);
+					Console.Log("clamp > max", type, gens[type].value, min, max);
 					gens[type].value = max;
 				}
 			}

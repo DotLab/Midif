@@ -188,7 +188,7 @@ namespace Midif.V3 {
     		public float h1, h2;
 
 			public void Set(Table table, float fc, float q) {
-				 // Console.Log("\tfilter set fc", this.fc , "->", fc, "q", this.q, "->", q);
+				//  Console.Log("\tfilter set fc", this.fc , "->", fc, "q", this.q, "->", q);
 				this.fc = fc;
 				this.q  = q;
 
@@ -305,6 +305,7 @@ namespace Midif.V3 {
 
 			short mode;
 			uint start;
+			uint startOffset;
 			uint duration;
 			uint loopEnd;
 			uint loopDuration;
@@ -343,13 +344,17 @@ namespace Midif.V3 {
 				var gs = zone.gens;
 
 				// voice
-				start = (uint)(sample.start + (gs[GenType.startAddrsCoarseOffset].value << 15) + gs[GenType.startAddrsOffset].value);
+				start = sample.start;
+				startOffset = (uint)((gs[GenType.startAddrsCoarseOffset].value << 15) + gs[GenType.startAddrsOffset].value);
+				// start = (uint)(sample.start + (gs[GenType.startAddrsCoarseOffset].value << 15) + gs[GenType.startAddrsOffset].value);
 				uint end = (uint)(sample.end + (gs[GenType.endAddrsCoarseOffset].value << 15) + gs[GenType.endAddrsOffset].value);
 				uint startloop = (uint)(sample.startloop + (gs[GenType.startloopAddrsCoarseOffset].value << 15) + gs[GenType.startloopAddrsOffset].value);
 				uint endloop = (uint)(sample.endloop + (gs[GenType.endloopAddrsCoarseOffset].value << 15) + gs[GenType.endloopAddrsOffset].value);
 				duration = end - start;
 				loopEnd = endloop - start;
 				loopDuration = endloop - startloop;
+				phase = startOffset;
+				Console.Log(start, end, startloop, endloop, duration, loopEnd, loopDuration);
 
 				short root = gs[GenType.overridingRootKey].value;  // MIDI ky# 
 				short scaleTuning = gs[GenType.scaleTuning].value;  // cent/key
@@ -359,7 +364,6 @@ namespace Midif.V3 {
 					* (float)Table.Cent2Pitch((note - root) * scaleTuning + sample.correction + gs[GenType.fineTune].value);
 				mode = gs[GenType.sampleModes].value;
 				gain = (float)Table.Db2Gain(-gs[GenType.initialAttenuation].value * .1);  // cB
-				phase = 0;
 
 				// filter
 				short initialFilterFc = gs[GenType.initialFilterFc].value;  // cent
@@ -474,13 +478,14 @@ namespace Midif.V3 {
 					if (killed) {
 						value = 0;
 					} else {
+						if (phase < 0) throw new System.Exception("phase < 0");
 						uint uintPhase = (uint)phase;
-						float t = (float)(phase - uintPhase);
-						value = data[start + uintPhase] * (1f - t) + data[start + uintPhase + 1] * t;
+						float ut = (float)(phase - uintPhase);
+						value = data[start + uintPhase] * (1f - ut) + data[start + uintPhase + 1] * ut;
 					}
 
 					// filter even when fc > 13500 (set fc = 13500 when that happens) so that filter is always ready
-					if (useFilter) value = filter.Process(value);
+					 if (useFilter) value = filter.Process(value);
 
 					value = value * curGain;
 					buffer[i] += value * gainLeft;
@@ -490,7 +495,7 @@ namespace Midif.V3 {
 					WaveVisualizer.Inc(1, modEnv.gain * gain);
 					WaveVisualizer.Inc(2, vibLfo.value * gain);
 					WaveVisualizer.Inc(3, modLfo.value * gain);
-					WaveVisualizer.Inc(5, data[start + (uint)phase] * gain);
+					WaveVisualizer.Inc(5, data[start + (int)phase] * gain);
 
 					phase += curStep;
 					switch (mode) {
@@ -626,7 +631,7 @@ namespace Midif.V3 {
 				for (int j = 0, endJ = instrument.instrumentZones.Length; j < endJ; j += 1) {
 					var instrumentZone = instrument.instrumentZones[j];
 					if (!instrumentZone.zone.Contains(note, velocity)) continue;
-// if (instrumentZone.sampleHeader.sampleName != "Stacked Saw-C4") continue;
+// if (instrumentZone.sampleHeader.sampleName != "Stacked Saw-C6") continue;
 					//  Console.Log("synth noteon", note, velocity, "preset", preset.presetName, "instrument", instrument.instName, "sample", instrumentZone.sampleHeader.sampleName);
 					var zone = Sf2File.GetAppliedZone(instrument.globalZone, instrumentZone.zone, preset.globalZone, presetZone.zone);
 
