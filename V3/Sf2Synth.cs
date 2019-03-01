@@ -121,7 +121,7 @@ namespace Midif.V3 {
 				time = 0;
 				stageTime = delayTime;
 
-				Console.Log("\tenv", name, "on delay", delay, "attack", attack, "hold", hold, "decay", decay, "release", release, "sustainGain", sustainGain);
+				// Console.Log("\tenv", name, "on delay", delay, "attack", attack, "hold", hold, "decay", decay, "release", release, "sustainGain", sustainGain);
 			}
 
 			public void Off() {
@@ -131,7 +131,7 @@ namespace Midif.V3 {
 
 				stageTime = releaseTime;
 				gainStep = -gain / releaseTime;
-				Console.Log("\tenv", name, "off stage", stage, "stageTime", stageTime, "gain", gain, "gainStep", gainStep, "target", gain + gainStep * stageTime);
+				// Console.Log("\tenv", name, "off stage", stage, "stageTime", stageTime, "gain", gain, "gainStep", gainStep, "target", gain + gainStep * stageTime);
 			}
 
 			// force stop
@@ -172,7 +172,7 @@ namespace Midif.V3 {
 					// case StageRelease: break;  // not possible
 					case StageDone: gain = 0; gainStep = 0; break;
 					}
-					Console.Log("\tenv", name, "stage", stage, "time", time, "stageTime", stageTime, "gain", gain, "gainStep", gainStep, "target", gain + gainStep * stageTime);
+					// Console.Log("\tenv", name, "stage", stage, "time", time, "stageTime", stageTime, "gain", gain, "gainStep", gainStep, "target", gain + gainStep * stageTime);
 				}
 				
 				// auto done when gain is too low
@@ -188,7 +188,7 @@ namespace Midif.V3 {
     		public float h1, h2;
 
 			public void Set(Table table, float fc, float q) {
-				 Console.Log("\tfilter set fc", this.fc , "->", fc, "q", this.q, "->", q);
+				 // Console.Log("\tfilter set fc", this.fc , "->", fc, "q", this.q, "->", q);
 				this.fc = fc;
 				this.q  = q;
 
@@ -225,7 +225,7 @@ namespace Midif.V3 {
 			public float value;
 
 			public void On(Table table, float delay, float freq) {
-				Console.Log("\tlfo", name, "freq", freq, delay);
+				// Console.Log("\tlfo", name, "freq", freq, delay);
 
 				// in sample count
 				delayTime = (int)(delay * table.sampleRate);
@@ -411,7 +411,7 @@ namespace Midif.V3 {
 					(float)Table.Timecent2Sec(decayVolEnv),
 					(float)Table.Timecent2Sec(releaseVolEnv),
 					(float)Table.Db2Gain(-(double)sustainVolEnv * .1));
-				Console.Log("\tv", id, "on volEnv", delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, releaseVolEnv, sustainVolEnv, -(double)sustainVolEnv * .1, Table.Db2Gain(-(double)sustainVolEnv * .1));
+				// Console.Log("\tv", id, "on volEnv", delayVolEnv, attackVolEnv, holdVolEnv, decayVolEnv, releaseVolEnv, sustainVolEnv, -(double)sustainVolEnv * .1, Table.Db2Gain(-(double)sustainVolEnv * .1));
 
 				// modEnv
 				modEnvToPitch = gs[GenType.modEnvToPitch].value;  // cent fs
@@ -435,7 +435,7 @@ namespace Midif.V3 {
 						(float)Table.Timecent2Sec(decayModEnv),
 						(float)Table.Timecent2Sec(releaseModEnv),
 						(float)Table.Db2Gain(-(double)sustainModEnv * .1));
-					Console.Log("\tv", id, "on modEnv", delayModEnv, attackModEnv, holdModEnv, decayModEnv, releaseModEnv, sustainVolEnv);
+					// Console.Log("\tv", id, "on modEnv", delayModEnv, attackModEnv, holdModEnv, decayModEnv, releaseModEnv, sustainVolEnv);
 				}
 
 				Console.Log("v", id, "on", note, 
@@ -514,7 +514,7 @@ namespace Midif.V3 {
 
 			// will be called with count = 0 to init
 			void Update(bool lfoFlag, bool envFlag) {
-//				 Console.Log("v", id, "update", lfoFlag, envFlag, count);
+				//  Console.Log("v", id, "update", lfoFlag, envFlag, count);
 
 				if (lfoFlag) {
 					int skip = count - lastLfoCount; lastLfoCount = count;
@@ -626,7 +626,7 @@ namespace Midif.V3 {
 				for (int j = 0, endJ = instrument.instrumentZones.Length; j < endJ; j += 1) {
 					var instrumentZone = instrument.instrumentZones[j];
 					if (!instrumentZone.zone.Contains(note, velocity)) continue;
-if (instrumentZone.sampleHeader.sampleName != "Stacked Saw-C4") continue;
+// if (instrumentZone.sampleHeader.sampleName != "Stacked Saw-C4") continue;
 					//  Console.Log("synth noteon", note, velocity, "preset", preset.presetName, "instrument", instrument.instName, "sample", instrumentZone.sampleHeader.sampleName);
 					var zone = Sf2File.GetAppliedZone(instrument.globalZone, instrumentZone.zone, preset.globalZone, presetZone.zone);
 

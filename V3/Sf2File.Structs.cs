@@ -289,7 +289,7 @@ namespace Midif.V3 {
 			public const int scaleTuning = 56;                 // Scale tuning
 			public const int exclusiveClass = 57;              // Exclusive class number
 			public const int overridingRootKey = 58;           // Sample root note override
-			public const int last = 59;
+			public const int end = 59;
 		}
 
 		public static class SampleMode {

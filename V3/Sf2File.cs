@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using Encoding = System.Text.Encoding;
 
+using GenType = Midif.V3.Sf2File.GeneratorType;
+
 namespace Midif.V3 {
 	// [System.Serializable]
 	public sealed partial class Sf2File {
@@ -264,6 +266,7 @@ namespace Midif.V3 {
 			zone2.Set(pZone);
 
 			zone.Add(zone2);
+			zone.Clamp();
 			return zone;
 		}
 
@@ -322,7 +325,7 @@ namespace Midif.V3 {
 		public byte velocityLo;
 		public byte velocityHi = 127;
 
-		public Gen[] gens = new Gen[Sf2File.GeneratorType.last];
+		public Gen[] gens = new Gen[Sf2File.GeneratorType.end];
 
 		public Sf2Zone() {}
 
@@ -378,15 +381,13 @@ namespace Midif.V3 {
 			}
 		}
 
-		public void Clamp() {
-			
-		}
-
 		public bool Contains(byte note, byte velocity) {
 			return noteLo <= note && note <= noteHi && velocityLo <= velocity && velocity <= velocityHi;
 		}
 
 		public void Default() {
+			for (int i = 0; i < Sf2File.GeneratorType.end; i += 1) gens[i].value = 0;
+
 			gens[Sf2File.GeneratorType.initialFilterFc].value = 13500;
 			gens[Sf2File.GeneratorType.delayModLfo].value = -12000;
 			gens[Sf2File.GeneratorType.delayVibLfo].value = -12000;
@@ -404,6 +405,76 @@ namespace Midif.V3 {
 			gens[Sf2File.GeneratorType.velocity].value = -1;
 			gens[Sf2File.GeneratorType.scaleTuning].value = 100;
 			gens[Sf2File.GeneratorType.overridingRootKey].value = -1;
+		}
+
+		public void Clamp() {
+			// const short min = short.MinValue;
+			// const short max = short.MaxValue;
+			
+			// Clamp(GenType.startAddrsOffset,           0,      max);
+			// Clamp(GenType.endAddrsOffset,             min,    0);
+			// Clamp(GenType.startloopAddrsOffset,       min,    max);
+			// Clamp(GenType.endloopAddrsOffset,         min,    max);
+			// Clamp(GenType.startAddrsCoarseOffset,     0,      max);
+			Clamp(GenType.modLfoToPitch,              -12000, 12000);
+			Clamp(GenType.vibLfoToPitch,              -12000, 12000);
+			Clamp(GenType.modEnvToPitch,              -12000, 12000);
+			Clamp(GenType.initialFilterFc,            1500,   13500);
+			Clamp(GenType.initialFilterQ,             0,      960);
+			Clamp(GenType.modLfoToFilterFc,           -12000, 12000);
+			Clamp(GenType.modEnvToFilterFc,           -12000, 12000);
+			// Clamp(GenType.endAddrsCoarseOffset,       min,    0);
+			Clamp(GenType.modLfoToVolume,             -960,   960);
+			Clamp(GenType.chorusEffectsSend,          0,      1000);
+			Clamp(GenType.reverbEffectsSend,          0,      1000);
+			Clamp(GenType.pan,                        -500,   500);
+			Clamp(GenType.delayModLfo,                -12000, 5000);
+			Clamp(GenType.freqModLfo,                 -16000, 4500);
+			Clamp(GenType.delayVibLfo,                -12000, 5000);
+			Clamp(GenType.freqVibLfo,                 -16000, 4500);
+			Clamp(GenType.delayModEnv,                -12000, 5000);
+			Clamp(GenType.attackModEnv,               -12000, 8000);
+			Clamp(GenType.holdModEnv,                 -12000, 5000);
+			Clamp(GenType.decayModEnv,                -12000, 8000);
+			Clamp(GenType.sustainModEnv,              0,      1000);
+			Clamp(GenType.releaseModEnv,              -12000, 8000);
+			Clamp(GenType.keynumToModEnvHold,         -1200,  1200);
+			Clamp(GenType.keynumToModEnvDecay,        -1200,  1200);
+			Clamp(GenType.delayVolEnv,                -12000, 5000);
+			Clamp(GenType.attackVolEnv,               -12000, 8000);
+			Clamp(GenType.holdVolEnv,                 -12000, 5000);
+			Clamp(GenType.decayVolEnv,                -12000, 8000);
+			Clamp(GenType.sustainVolEnv,              0,      1440);
+			Clamp(GenType.releaseVolEnv,              -12000, 8000);
+			Clamp(GenType.keynumToVolEnvHold,         -1200,  1200);
+			Clamp(GenType.keynumToVolEnvDecay,        -1200,  1200);
+			// Clamp(GenType.instrument);
+			Clamp(GenType.keyRange,                   0,      127);
+			Clamp(GenType.velRange,                   0,      127);
+			// Clamp(GenType.startloopAddrsCoarseOffset, min,    max);
+			Clamp(GenType.keynum,                     0,      127);
+			Clamp(GenType.velocity,                   1,      127);
+			Clamp(GenType.initialAttenuation,         0,      1440);
+			// Clamp(GenType.endloopAddrsCoarseOffset,   min,    max);
+			Clamp(GenType.coarseTune,                 -120,   120);
+			Clamp(GenType.fineTune,                   -99,    99);
+			// Clamp(GenType.sampleId);
+			// Clamp(GenType.sampleModes,                min,    max);
+			Clamp(GenType.scaleTuning,                0,      1200);
+			Clamp(GenType.exclusiveClass,             1,      127);
+			Clamp(GenType.overridingRootKey,          0,      127);
+		}
+
+		void Clamp(int type, short min, short max) {
+			if (gens[type].flag) {
+				if (gens[type].value < min) {
+//					Console.Log("clamp < min", type, gens[type].value, min, max);
+					gens[type].value = min;
+				} else if (gens[type].value > max) {
+//					Console.Log("clamp > max", type, gens[type].value, min, max);
+					gens[type].value = max;
+				}
+			}
 		}
 	}
 }
