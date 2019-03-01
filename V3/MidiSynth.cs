@@ -171,7 +171,9 @@ namespace Midif.V3 {
 		public EnvelopeConfig envelopeConfig;
 
 		public MidiSynth(Table table, float sampleRate, int voiceCount) {
+			#if MIDIF_DEBUG_VISUALIZER
 			WaveVisualizer.Request(0, 1024);
+			#endif
 
 			this.table = table;
 
@@ -311,8 +313,10 @@ namespace Midif.V3 {
 				
 				data[i] = left;
 				data[i + 1] = right;
-				
+
+				#if MIDIF_DEBUG_VISUALIZER
 				WaveVisualizer.Push(0, left);
+				#endif
 			}
 
 			Panic();
