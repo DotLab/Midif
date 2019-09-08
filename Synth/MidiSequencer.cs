@@ -36,8 +36,8 @@
 			set {
 				tick = value;
 
-				for (midiIndex = 0; file.MidiEvents[midiIndex].Tick < tick;) midiIndex++;
-				for (metaIndex = 0; file.MetaEvents[metaIndex].Tick < tick;) metaIndex++;
+				for (midiIndex = 0; midiIndex < file.MidiEvents.Count && file.MidiEvents[midiIndex].Tick < tick;) midiIndex++;
+				for (metaIndex = 0; metaIndex < file.MetaEvents.Count && file.MetaEvents[metaIndex].Tick < tick;) metaIndex++;
 			}
 		}
 

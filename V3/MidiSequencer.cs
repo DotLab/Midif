@@ -1,8 +1,21 @@
-﻿using Unsaf;
+﻿using System.Collections.Generic;
+using Unsaf;
 using Debug = UnityEngine.Debug;
 
 namespace Midif.V3 {
 	public sealed class MidiSequencer {
+		struct Route {
+			public int trackIn;
+			public byte channelIn;
+			public int channelOut;
+
+			public Route(int trackIn, byte channelIn, int channelOut) {
+				this.trackIn = trackIn;
+				this.channelIn = channelIn;
+				this.channelOut = channelOut;
+			}
+		}
+
 		public MidiFile file;
 		public IMidiSynth synth;
 
@@ -13,6 +26,8 @@ namespace Midif.V3 {
 		public double ticks;
 
 		public bool isFinished;
+
+		readonly List<Route> routes = new List<Route>();
 
 		public MidiSequencer(MidiFile file, IMidiSynth synth) {
 			this.file = file;
@@ -26,6 +41,10 @@ namespace Midif.V3 {
 			ticks = 0;
 			isFinished = false;
 			Reset();
+		}
+
+		public void AddRoute(int trackIn, byte channelIn, int channelOut) {
+			routes.Add(new Route(trackIn, channelIn, channelOut));
 		}
 
 		public void Reset() {
@@ -69,40 +88,44 @@ namespace Midif.V3 {
 			}
 
 			byte channel = (byte)(e.status & 0xf);
+			DispatchChannelEvent(channel, e.status, e.b1, e.b2);
 
-			switch (e.status >> 4) {
+			for (int i = 0, count = routes.Count; i < count; i += 1) {
+				var r = routes[i];
+				if (r.trackIn == track && r.channelIn == channel) DispatchChannelEvent(r.channelOut, e.status, e.b1, e.b2);
+			}
+		}
+
+		void DispatchChannelEvent(int channel, byte status, byte b1, byte b2) {
+			switch (status >> 4) {
 			case 0x8:  // note off
 				// Debug.LogFormat("note off: {0} {1} {2}", channel, e.b1, e.b2);
-				synth.NoteOff(track, channel, e.b1, e.b2);
+				synth.NoteOff(channel, b1, b2);
 				break;
 			case 0x9:  // note on
-				// Debug.LogFormat("note on: {0} {1} {2}", channel, e.b1, e.b2);
-				if (e.b2 == 0) {
-					synth.NoteOff(track, channel, e.b1, 0);
-				} else {
-					synth.NoteOn(track, channel, e.b1, e.b2);
-				}
+				// Debug.LogFormat("note on: {0} {1} {2}", channel, b1, b2);
+				synth.NoteOn(channel, b1, b2);
 				break;
 			case 0xa:  // aftertouch
-				// Debug.LogFormat("aftertouch: {0} {1} {2}", channel, e.b1, e.b2);
+				// Debug.LogFormat("aftertouch: {0} {1} {2}", channel, b1, b2);
 				break;
 			case 0xb:  // controller
-				// Debug.LogFormat("controller: {0} {1} {2}", channel, e.b1, e.b2);
-				synth.Controller(track, channel, e.b1, e.b2);
+				// Debug.LogFormat("controller: {0} {1} {2}", channel, b1, b2);
+				synth.Controller(channel, b1, b2);
 				break;
 			case 0xc:  // program change
-				Debug.LogFormat("program change: {0} {1}", channel, e.b1);
-				synth.ProgramChange(track, channel, e.b1);
+				Debug.LogFormat("program change: {0} {1}", channel, b1);
+				synth.ProgramChange(channel, b1);
 				break;
 			case 0xd:  // channel pressure
-				// Debug.LogFormat("channel pressure: {0} {1} {2}", channel, e.b1, e.b2);
+				// Debug.LogFormat("channel pressure: {0} {1} {2}", channel, b1, b2);
 				break;
 			case 0xe:  // pitch bend
-				// Debug.LogFormat("pitch bend: {0} {1} {2}", channel, e.b1, e.b2);
-				synth.PitchBend(track, channel, e.b1, e.b2);
+				// Debug.LogFormat("pitch bend: {0} {1} {2}", channel, b1, b2);
+				synth.PitchBend(channel, b1, b2);
 				break;
 			default:
-				// Debug.LogFormat("?: {0} 0x{1:X} 0x{2:X} 0x{3:X} 0x{", e.status, e.type, e.b1, e.b2);
+				// Debug.LogFormat("?: {0} 0x{1:X} 0x{2:X} 0x{3:X} 0x{", status, type, b1, b2);
 				break;
 			}
 		}

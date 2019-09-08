@@ -138,7 +138,7 @@ namespace Midif.V3 {
 		public struct Voice {
 			public byte note;
 			public byte velocity;
-			public byte channel;
+			public int channel;
 
 			public float freq;
 			public float gainLeft;
@@ -213,10 +213,10 @@ namespace Midif.V3 {
 			masterGain = (float)Table.Deci2Gain(volume);
 		}
 
-		public void NoteOn(int track, byte channel, byte note, byte velocity) {
+		public void NoteOn(int channel, byte note, byte velocity) {
 			if (channel == 9) return;
 			if (velocity == 0) {
-				NoteOff(track, channel, note, velocity);
+				NoteOff(channel, note, velocity);
 				return;
 			}
 
@@ -239,7 +239,7 @@ namespace Midif.V3 {
 			UpdateVoiceGain(i);
 		}
 
-		public void NoteOff(int track, byte channel, byte note, byte velocity) {
+		public void NoteOff(int channel, byte note, byte velocity) {
 			if (channel == 9) return;
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
@@ -249,7 +249,7 @@ namespace Midif.V3 {
 			}
 		}
 
-		public void Controller(int track, byte channel, byte controller, byte value) {
+		public void Controller(int channel, byte controller, byte value) {
 			switch (controller) {
 			case 7:  // channel volume
 				channelVolumes[channel] = value;
@@ -266,10 +266,10 @@ namespace Midif.V3 {
 			}
 		}
 
-		public void ProgramChange(int track, byte channel, byte program) {
+		public void ProgramChange(int channel, byte program) {
 		}
 
-		public void PitchBend(int track, byte channel, byte lsb, byte msb) {
+		public void PitchBend(int channel, byte lsb, byte msb) {
 			channelpitchBends[channel] = msb;
 			UpdateChannelPitch(channel);
 		}

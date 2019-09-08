@@ -122,7 +122,9 @@ namespace Midif.File {
 			uint value = 0;
 
 			do {
-				b = (byte)stream.ReadByte();
+				int bb = stream.ReadByte();
+				if (bb < 0) throw new System.Exception("end of file");
+				b = (byte)bb;
 				value = (value << 7) | (uint)(b & 0x7F);
 			} while ((b & 0x80) != 0) ;
 

@@ -3,6 +3,8 @@ using GenType = Midif.V3.Sf2File.GeneratorType;
 
 namespace Midif.V3 {
 	public sealed class Sf2Synth : IMidiSynth {
+		public const int CHANNEL_COUNT = 64;
+
 		public sealed class Table {
 			public const float VelcRecip = 1f / 127f;
 
@@ -277,7 +279,7 @@ namespace Midif.V3 {
 
 			public byte note;
 			public byte velocity;
-			public byte channel;
+			public int channel;
 
 			public float channelGainLeft;
 			public float channelGainRight;
@@ -483,6 +485,7 @@ namespace Midif.V3 {
 			}
 
 			public void Process(float[] buffer) {
+				float min = 0, max = 0;
 				for (int i = 0, length = buffer.Length; i < length; i += 2) {
 					// the first iteration will call update with count = 0 so that filter, lfos, envs can init
 					bool lfoFlag = (count & lfoMask) == 0;
@@ -496,7 +499,11 @@ namespace Midif.V3 {
 					if (killed) {
 						value = 0;
 					} else {
-						if (phase < 0) throw new System.Exception("phase < 0");
+						if (phase < 0) {
+							UnityEngine.Debug.LogError("phase < 0");
+							Kill();
+							return;
+						}
 						uint uintPhase = (uint)phase;
 						float ut = (float)(phase - uintPhase);
 						value = data[start + uintPhase] * (1f - ut) + data[start + uintPhase + 1] * ut;
@@ -507,6 +514,9 @@ namespace Midif.V3 {
 					 if (useFilter) value = filter.Process(value);
 
 					value = value * gain;
+					if (value < min) min = value;
+					if (value > max) max = value;
+
 					buffer[i] += value * channelGainLeft * panLeft;
 					buffer[i + 1] += value * channelGainRight * panRight;
 
@@ -535,6 +545,10 @@ namespace Midif.V3 {
 						if (phase > duration) Kill();
 						break;
 					}
+				}
+				if (max - min > 3f) {
+					UnityEngine.Debug.LogErrorFormat("max ({0:F2}) - min ({1:F2}) = ({2:F2})", max, min, max - min);
+					Kill();
 				}
 			}
 
@@ -581,7 +595,7 @@ namespace Midif.V3 {
 			}
 		}
 
-		struct Channel {
+		public struct Channel {
 			public int presetIndex;
 			public byte bank;
 			public byte program;
@@ -590,14 +604,17 @@ namespace Midif.V3 {
 			public byte volume;
 			public byte expression;
 			public byte pitchBend;
+
+			public bool ignoreProgramChange;
 		}
 
 		public Sf2File file;
 		public Table table;
 
-		readonly Channel[] channels = new Channel[16];
+		public readonly Channel[] channels = new Channel[CHANNEL_COUNT];
 
 		public float masterGain;
+		public bool ignoreProgramChange;
 
 		public readonly int voiceCount;
 		readonly Voice[] voices;
@@ -629,7 +646,7 @@ namespace Midif.V3 {
 		}
 
 		public void Reset() {
-			for (int i = 0; i < 16; i += 1) {
+			for (int i = 0; i < CHANNEL_COUNT; i += 1) {
 				channels[i].bank = 0;
 				channels[i].program = 0;
 				channels[i].presetIndex = 0;
@@ -638,6 +655,8 @@ namespace Midif.V3 {
 				channels[i].volume = 100;
 				channels[i].expression = 127;
 				channels[i].pitchBend = 64;
+
+				channels[i].ignoreProgramChange = false;
 			}
 			channels[9].bank = 128;
 			channels[9].presetIndex = file.FindPreset(128, 0);
@@ -654,8 +673,12 @@ namespace Midif.V3 {
 			masterGain = (float)Table.Db2Gain(volume);
 		}
 
-		public void NoteOn(int track, byte channel, byte note, byte velocity) {
+		public void NoteOn(int channel, byte note, byte velocity) {
 			// if (channel != 10) return;
+			if (velocity == 0) {
+				NoteOff(channel, note, 0);
+				return;
+			}
 
 			var preset = file.presets[channels[channel].presetIndex];
 			for (int i = 0, endI = preset.presetZones.Length; i < endI; i += 1) {
@@ -700,7 +723,7 @@ namespace Midif.V3 {
 			}
 		}
 
-		public void NoteOff(int track, byte channel, byte note, byte velocity) {
+		public void NoteOff(int channel, byte note, byte velocity) {
 			// if (channel != 10) return;
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
@@ -710,7 +733,7 @@ namespace Midif.V3 {
 			}
 		}
 
-		public void Controller(int track, byte channel, byte controller, byte value) {
+		public void Controller(int channel, byte controller, byte value) {
 			switch (controller) {
 			case 0:  // bank select
 				// Console.Log("bank select msb", channel, value);
@@ -733,13 +756,14 @@ namespace Midif.V3 {
 			}
 		}
 
-		public void ProgramChange(int track, byte channel, byte program) {
+		public void ProgramChange(int channel, byte program) {
+			if (ignoreProgramChange && channels[channel].ignoreProgramChange) return;
 			channels[channel].program = program;
 			int presetIndex = file.FindPreset(channels[channel].bank, program);
 			if (presetIndex > 0) channels[channel].presetIndex = presetIndex;
 		}
 
-		public void PitchBend(int track, byte channel, byte lsb, byte msb) {
+		public void PitchBend(int channel, byte lsb, byte msb) {
 			channels[channel].pitchBend = msb;
 			UpdateChannelPitch(channel);
 		}
@@ -768,8 +792,6 @@ namespace Midif.V3 {
 		}
 
 		public void Process(float[] buffer) {
-			var sb = new System.Text.StringBuilder();
-
 			#if MIDIF_DEBUG_VISUALIZER
 			WaveVisualizer.Clear(0);
 			WaveVisualizer.Clear(1);
@@ -777,15 +799,22 @@ namespace Midif.V3 {
 			WaveVisualizer.Clear(3);
 			WaveVisualizer.Clear(5);
 			#endif
-			for (int j = firstActiveVoice; j != -1; j = voices[j].next) {
-				voices[j].Process(buffer);
-				#if MIDIF_DEBUG_VISUALIZER
-				WaveVisualizer.SetI(0, 0);
-				WaveVisualizer.SetI(1, 0);
-				WaveVisualizer.SetI(2, 0);
-				WaveVisualizer.SetI(3, 0);
-				WaveVisualizer.SetI(5, 0);
-				#endif
+
+			try {
+				for (int j = firstActiveVoice; j != -1; j = voices[j].next) {
+					voices[j].Process(buffer);
+					#if MIDIF_DEBUG_VISUALIZER
+					WaveVisualizer.SetI(0, 0);
+					WaveVisualizer.SetI(1, 0);
+					WaveVisualizer.SetI(2, 0);
+					WaveVisualizer.SetI(3, 0);
+					WaveVisualizer.SetI(5, 0);
+					#endif
+				}
+			} catch (System.Exception e) {
+				UnityEngine.Debug.LogError(e);
+				Reset();
+				return;
 			}
 
 			#if MIDIF_DEBUG_VISUALIZER
