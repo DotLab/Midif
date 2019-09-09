@@ -20,12 +20,13 @@ namespace Midif.V3 {
 		public IMidiSynth synth;
 
 		public int[] trackIndices;
-		public double[] trackTicks;
+		public int[] trackTicks;
 
-		public double beatsPerSecond;
-		public double ticks;
+		public float beatsPerSecond;
+		public float ticks;
 
 		public bool isFinished;
+		public bool isMuted;
 
 		readonly List<Route> routes = new List<Route>();
 
@@ -35,7 +36,7 @@ namespace Midif.V3 {
 
 			int trackCount = file.trackCount;
 			trackIndices = new int[trackCount];
-			trackTicks = new double[trackCount];
+			trackTicks = new int[trackCount];
 
 			beatsPerSecond = 0;
 			ticks = 0;
@@ -58,7 +59,7 @@ namespace Midif.V3 {
 			isFinished = false;
 		}
 
-		public void AdvanceTime(double time) {
+		public void AdvanceTime(float time) {
 			ticks += time * beatsPerSecond * file.ticksPerBeat;
 
 			isFinished = true;
@@ -83,7 +84,7 @@ namespace Midif.V3 {
 				int i = e.dataLoc;
 				// 24-bit value specifying the tempo as the number of microseconds per beat
 				int microsecondsPerBeat = BitBe.ReadInt24(file.bytes, ref i);
-				beatsPerSecond = (1000000.0 / (double)microsecondsPerBeat);
+				beatsPerSecond = (1000000f / microsecondsPerBeat);
 				// Debug.LogFormat("meta: {0} tempo", microsecondsPerBeat);
 			}
 
@@ -100,14 +101,14 @@ namespace Midif.V3 {
 			switch (status >> 4) {
 			case 0x8:  // note off
 				// Debug.LogFormat("note off: {0} {1} {2}", channel, e.b1, e.b2);
-				synth.NoteOff(channel, b1, b2);
+				if (!isMuted) synth.NoteOff(channel, b1, b2);
 				break;
 			case 0x9:  // note on
 				// Debug.LogFormat("note on: {0} {1} {2}", channel, b1, b2);
-				synth.NoteOn(channel, b1, b2);
+				if (!isMuted) synth.NoteOn(channel, b1, b2);
 				break;
 			case 0xa:  // aftertouch
-				// Debug.LogFormat("aftertouch: {0} {1} {2}", channel, b1, b2);
+//				 Debug.LogFormat("aftertouch: {0} {1} {2}", channel, b1, b2);
 				break;
 			case 0xb:  // controller
 				// Debug.LogFormat("controller: {0} {1} {2}", channel, b1, b2);

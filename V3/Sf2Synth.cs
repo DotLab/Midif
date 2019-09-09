@@ -675,8 +675,8 @@ namespace Midif.V3 {
 
 		public void NoteOn(int channel, byte note, byte velocity) {
 			// if (channel != 10) return;
+			NoteOff(channel, note, 0);
 			if (velocity == 0) {
-				NoteOff(channel, note, 0);
 				return;
 			}
 
@@ -729,6 +729,7 @@ namespace Midif.V3 {
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel && voices[i].note == note) {
 					voices[i].Off();
+					return;
 				}
 			}
 		}
@@ -757,7 +758,7 @@ namespace Midif.V3 {
 		}
 
 		public void ProgramChange(int channel, byte program) {
-			if (ignoreProgramChange && channels[channel].ignoreProgramChange) return;
+			if (ignoreProgramChange || channels[channel].ignoreProgramChange) return;
 			channels[channel].program = program;
 			int presetIndex = file.FindPreset(channels[channel].bank, program);
 			if (presetIndex > 0) channels[channel].presetIndex = presetIndex;
