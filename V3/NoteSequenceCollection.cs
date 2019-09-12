@@ -20,8 +20,11 @@ namespace Midif.V3 {
 			public int end;
 
 			public int track;
+			public int trackGroup;
 			public byte channel;
+			public byte channelGroup;
 			public byte program;
+			public byte programGroup;
 
 			public List<Note> notes = new List<Note>();
 		}
@@ -29,8 +32,9 @@ namespace Midif.V3 {
 		public MidiFile file;
 
 		public int noteCount;
-		public int[] tracks;
-		public byte[] channels;
+		public int[] trackGroups;
+		public byte[] channelGroups;
+		public byte[] programGroups;
 		public List<Sequence> sequences = new List<Sequence>();
 
 		public NoteSequenceCollection(MidiFile file) {
@@ -72,13 +76,32 @@ namespace Midif.V3 {
 				sequences.Add(seq);
 			}
 
-			var trackSet = new HashSet<int>();
-			var channelSet = new HashSet<byte>();
+			int trackGroupIndex = 0;
+			byte channelGroupIndex = 0;
+			byte programGroupIndex = 0;
+			var trackGroupDict = new Dictionary<int, int>();
+			var channelGroupDict = new Dictionary<byte, byte>();
+			var programGroupDict = new Dictionary<byte, byte>();
 			for (int i = 0; i < sequences.Count; i++) {
 				seq = sequences[i];
+
+				if (!trackGroupDict.ContainsKey(seq.track)) {
+					trackGroupDict.Add(seq.track, trackGroupIndex);
+					trackGroupIndex += 1;
+				}
+				if (!channelGroupDict.ContainsKey(seq.channel)) {
+					channelGroupDict.Add(seq.channel, channelGroupIndex);
+					channelGroupIndex += 1;
+				}
+				if (!programGroupDict.ContainsKey(seq.program)) {
+					programGroupDict.Add(seq.program, programGroupIndex);
+					programGroupIndex += 1;
+				}
+				seq.trackGroup = trackGroupDict[seq.track];
+				seq.channelGroup = channelGroupDict[seq.channel];
+				seq.programGroup = programGroupDict[seq.program];
+
 				noteCount += seq.notes.Count;
-				trackSet.Add(seq.track);
-				channelSet.Add(seq.channel);
 
 				seq.start = seq.notes[0].start;
 				int end = seq.notes[0].end;
@@ -91,8 +114,10 @@ namespace Midif.V3 {
 				}
 				seq.end = end;
 			}
-			tracks = trackSet.ToArray();
-			channels = channelSet.ToArray();
+
+			trackGroups = trackGroupDict.Keys.ToArray();
+			channelGroups = channelGroupDict.Keys.ToArray();
+			programGroups = programGroupDict.Keys.ToArray();
 		}
 
 		void NoteOff(Sequence seq, int tick, byte note) {
