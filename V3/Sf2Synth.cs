@@ -677,6 +677,7 @@ namespace Midif.V3 {
 			// if (channel != 10) return;
 			NoteOff(channel, note, 0);
 			if (velocity == 0) {
+				UnityEngine.Debug.LogWarning("Note on with 0 velocity");
 				return;
 			}
 
@@ -824,7 +825,7 @@ namespace Midif.V3 {
 			}
 			#endif
 
-			Panic();
+//			Panic();
 		}
 
 		void UpdateVoiceGain(int i) {
