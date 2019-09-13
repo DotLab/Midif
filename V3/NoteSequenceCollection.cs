@@ -6,6 +6,7 @@ namespace Midif.V3 {
 	public sealed class NoteSequenceCollection {
 		[System.Serializable]
 		public class Note {
+			public byte channel;
 			public byte note;
 			public byte velocity;
 
@@ -53,8 +54,8 @@ namespace Midif.V3 {
 
 				for (int j = 0; j < track.Length; j++) {
 					var e = track[j];
-					int channel = e.status & 0xf;
-					seq = SwitchWorkingSequence(seq, i, (byte)channel, seq.program);
+					byte channel = (byte)(e.status & 0xf);
+					seq = SwitchWorkingSequence(seq, i, channel, seq.program);
 
 					tick += e.delta;
 					switch (e.status >> 4) {
@@ -63,7 +64,7 @@ namespace Midif.V3 {
 						break;
 					case 0x9:  // note on
 						if (e.b2 == 0) NoteOff(seq, tick, e.b1);
-						else seq.notes.Add(new Note{note = e.b1, velocity = e.b2, start = tick});
+						else seq.notes.Add(new Note{channel = channel, note = e.b1, velocity = e.b2, start = tick});
 						break;
 					case 0xc:  // program change
 						seq = SwitchWorkingSequence(seq, i, seq.channel, e.b1);

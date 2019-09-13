@@ -59,8 +59,16 @@ namespace Midif.V3 {
 			isFinished = false;
 		}
 
-		public void AdvanceTime(float time) {
-			ticks += time * beatsPerSecond * file.ticksPerBeat;
+		public float ToTicks(float seconds) {
+			return seconds / (beatsPerSecond * file.ticksPerBeat);
+		}
+
+		public float ToSeconds(float seconds) {
+			return seconds * beatsPerSecond * file.ticksPerBeat;
+		}
+
+		public void AdvanceTime(float seconds) {
+			ticks += seconds * beatsPerSecond * file.ticksPerBeat;
 
 			isFinished = true;
 			for (int i = 0, count = file.trackCount; i < count; i += 1) {
@@ -85,7 +93,7 @@ namespace Midif.V3 {
 				// 24-bit value specifying the tempo as the number of microseconds per beat
 				int microsecondsPerBeat = BitBe.ReadInt24(file.bytes, ref i);
 				beatsPerSecond = (1000000f / microsecondsPerBeat);
-				// Debug.LogFormat("meta: {0} tempo", microsecondsPerBeat);
+				 Debug.LogFormat("meta: {0} tempo", microsecondsPerBeat);
 			}
 
 			byte channel = (byte)(e.status & 0xf);
