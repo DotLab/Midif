@@ -60,11 +60,11 @@ namespace Midif.V3 {
 		}
 
 		public float ToTicks(float seconds) {
-			return seconds / (beatsPerSecond * file.ticksPerBeat);
+			return seconds * beatsPerSecond * file.ticksPerBeat;
 		}
 
 		public float ToSeconds(float seconds) {
-			return seconds * beatsPerSecond * file.ticksPerBeat;
+			return seconds / (beatsPerSecond * file.ticksPerBeat);
 		}
 
 		public void AdvanceTime(float seconds) {

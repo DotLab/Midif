@@ -2,9 +2,9 @@
 using System.Linq;
 
 namespace Midif.V3 {
-	[System.Serializable]
+//	[System.Serializable]
 	public sealed class NoteSequenceCollection {
-		[System.Serializable]
+//		[System.Serializable]
 		public class Note {
 			public byte channel;
 			public byte note;
@@ -15,7 +15,7 @@ namespace Midif.V3 {
 			public int duration;
 		}
 
-		[System.Serializable]
+//		[System.Serializable]
 		public class Sequence {
 			public int start;
 			public int end;
@@ -32,6 +32,8 @@ namespace Midif.V3 {
 
 		public MidiFile file;
 
+		public int start;
+		public int end;
 		public int noteCount;
 		public int[] trackGroups;
 		public byte[] channelGroups;
@@ -83,6 +85,7 @@ namespace Midif.V3 {
 			var trackGroupDict = new Dictionary<int, int>();
 			var channelGroupDict = new Dictionary<byte, byte>();
 			var programGroupDict = new Dictionary<byte, byte>();
+			start = end = -1;
 			for (int i = 0; i < sequences.Count; i++) {
 				seq = sequences[i];
 
@@ -105,15 +108,17 @@ namespace Midif.V3 {
 				noteCount += seq.notes.Count;
 
 				seq.start = seq.notes[0].start;
-				int end = seq.notes[0].end;
+				if (start == -1 || seq.start < start) start = seq.start;
+				int seqEnd = seq.notes[0].end;
 				for (int j = 0; j < seq.notes.Count; j++) {
 					var n = seq.notes[j];
-					if (end < n.end) end = n.end;
+					if (seqEnd < n.end) seqEnd = n.end;
 					if (n.end == 0) {
 						UnityEngine.Debug.LogError("Note is never off: " + n.note);
 					}
 				}
-				seq.end = end;
+				seq.end = seqEnd;
+				if (end == -1 || seq.end > end) end = seq.end;
 			}
 
 			trackGroups = trackGroupDict.Keys.ToArray();
