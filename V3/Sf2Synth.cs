@@ -730,7 +730,7 @@ namespace Midif.V3 {
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel && voices[i].note == note) {
 					voices[i].Off();
-					return;
+//					return;
 				}
 			}
 		}
