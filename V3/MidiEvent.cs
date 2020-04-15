@@ -2,16 +2,22 @@
 
 namespace Midif.V3 {
 	public struct MidiEvent {
+		public int track;
 		public int delta;
+		public int tick;
+
+		public int dataLoc;
+		public int dataLen;
+		
 		public byte status;
 		public byte type;
 		public byte b1;
 		public byte b2;
-		public int dataLoc;
-		public int dataLen;
 
-		public MidiEvent(int delta, byte status, byte type, int dataLoc, int dataLen, byte[] bytes) {
+		public MidiEvent(int track, int delta, int tick, byte status, byte type, int dataLoc, int dataLen, byte[] bytes) {
+			this.track = track;
 			this.delta = delta;
+			this.tick = tick;
 			this.status = status;
 			this.type = type;
 			this.dataLoc = dataLoc;

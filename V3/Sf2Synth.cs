@@ -500,7 +500,7 @@ namespace Midif.V3 {
 						value = 0;
 					} else {
 						if (phase < 0) {
-							UnityEngine.Debug.LogError("phase < 0");
+							UnityEngine.Debug.LogWarning("phase < 0");
 							Kill();
 							return;
 						}
@@ -547,7 +547,7 @@ namespace Midif.V3 {
 					}
 				}
 				if (max - min > 3f) {
-					UnityEngine.Debug.LogErrorFormat("max ({0:F2}) - min ({1:F2}) = ({2:F2})", max, min, max - min);
+					UnityEngine.Debug.LogWarningFormat("max ({0:F2}) - min ({1:F2}) = ({2:F2})", max, min, max - min);
 					Kill();
 				}
 			}
@@ -749,11 +749,11 @@ namespace Midif.V3 {
 				break;
 			case 10:  // pan
 				channels[channel].pan = value;
-				UpdateChannelGain(channel);
+					UpdateChannelGain(channel);
 				break;
 			case 11:  // expression
 				channels[channel].expression = value;
-				UpdateChannelGain(channel);
+					UpdateChannelGain(channel);
 				break;
 			}
 		}
@@ -846,6 +846,7 @@ namespace Midif.V3 {
 		}
 
 		void UpdateChannelGain(int channel) {
+			UnityEngine.Debug.Log("update channel gain " + channel);
 			byte pan = channels[channel].pan;
 			byte volume = channels[channel].volume;
 			byte expression = channels[channel].expression;
@@ -855,8 +856,8 @@ namespace Midif.V3 {
 
 			for (int i = firstActiveVoice; i != -1; i = voices[i].next) {
 				if (voices[i].channel == channel) {
-					// float gain = table.volm2Gain[voices[i].velocity];
-					float gain = voices[i].velocity * Table.VelcRecip;
+					float gain = table.volm2Gain[voices[i].velocity];
+					//float gain = voices[i].velocity * Table.VelcRecip;
 					// float gain = 1;
 					voices[i].channelGainLeft = channelGainLeft * gain;
 					voices[i].channelGainRight = channelGainRight * gain;

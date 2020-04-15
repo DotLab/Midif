@@ -1,22 +1,32 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Unsaf;
 
 namespace Midif.V3 {
 //	[System.Serializable]
 	public sealed class NoteSequenceCollection {
 //		[System.Serializable]
-		public class Note {
-			public byte channel;
-			public byte note;
-			public byte velocity;
+		public sealed class Note {
+			//public int sequence;
 
 			public int start;
 			public int end;
 			public int duration;
+
+			public float startSeconds;
+			public float endSeconds;
+			public float durationSeconds;
+
+			public int track;
+			public byte channel;
+			public byte note;
+			public byte velocity;
 		}
 
 //		[System.Serializable]
-		public class Sequence {
+		public sealed class Sequence {
+			public int index;
+
 			public int start;
 			public int end;
 
@@ -49,35 +59,60 @@ namespace Midif.V3 {
 		void Parse() {
 			var seq = new Sequence();
 
-			for (int i = 0; i < file.tracks.Length; i++) {
-				var track = file.tracks[i];
-				var tick = 0;
-				seq = SwitchWorkingSequence(seq, i, 0, 0);
+			// default tempo 120 bpm
+			float beatsPerSecond = 2;
+			int ticks = 0;
+			float seconds = 0;
+			byte[] channelPrograms = new byte[16];
 
-				for (int j = 0; j < track.Length; j++) {
-					var e = track[j];
-					byte channel = (byte)(e.status & 0xf);
-					seq = SwitchWorkingSequence(seq, i, channel, seq.program);
+			for (int i = 0; i < file.combinedTrack.Length; i++) {
+				var e = file.combinedTrack[i];
+				byte channel = (byte)(e.status & 0xf);
+				seq = SwitchWorkingSequence(seq, e.track, channel, channelPrograms[channel]);
+				int tickDiff = e.tick - ticks;
+				ticks = e.tick;
+				seconds += tickDiff / (beatsPerSecond * file.ticksPerBeat);
 
-					tick += e.delta;
-					switch (e.status >> 4) {
+
+				switch (e.status >> 4) {
 					case 0x8:  // note off
-						NoteOff(seq, tick, e.b1);
+						//UnityEngine.Debug.LogFormat("off {3} track {0} tick {1} seconds {2}", e.track, e.tick, seconds, e.b1);
+						NoteOff(seq, e.tick, seconds, e.b1);
 						break;
 					case 0x9:  // note on
-						if (e.b2 == 0) NoteOff(seq, tick, e.b1);
-						else seq.notes.Add(new Note{channel = channel, note = e.b1, velocity = e.b2, start = tick});
+						//UnityEngine.Debug.LogFormat("on {3} track {0} tick {1} seconds {2}", e.track, e.tick, seconds, e.b1);
+						if (e.b2 == 0) NoteOff(seq, e.tick, seconds, e.b1);
+						else seq.notes.Add(new Note { track = e.track, channel = channel, note = e.b1, velocity = e.b2, start = e.tick, startSeconds = seconds });
 						break;
 					case 0xc:  // program change
-						seq = SwitchWorkingSequence(seq, i, seq.channel, e.b1);
+						//UnityEngine.Debug.LogFormat("prog track {0} tick {1} seconds {2}", e.track, e.tick, seconds);
+						channelPrograms[channel] = e.b1;
+						seq = SwitchWorkingSequence(seq, e.track, seq.channel, e.b1);
 						break;
-					}
+					case 0xff:  // meta
+						if (e.type == 0x51) {  // tempo
+							//UnityEngine.Debug.LogFormat("temp track {0} tick {1} seconds {2}", e.track, e.tick, seconds);
+							int start = e.dataLoc;
+							// 24-bit value specifying the tempo as the number of microseconds per beat
+							int microsecondsPerBeat = BitBe.ReadInt24(file.bytes, ref start);
+							beatsPerSecond = 1000000f / microsecondsPerBeat;
+						}
+						break;
 				}
 			}
-
+			
 			if (seq.notes.Count > 0 && !sequences.Contains(seq)) {
 				sequences.Add(seq);
 			}
+			sequences.Sort((a, b) => {
+				if (a.track == b.track) {
+					if (a.channel == b.channel) {
+						return a.program.CompareTo(b.program);
+					}
+					return a.channel.CompareTo(b.channel);
+				}
+				return a.track.CompareTo(b.track);
+			});
 
 			int trackGroupIndex = 0;
 			byte channelGroupIndex = 0;
@@ -114,7 +149,8 @@ namespace Midif.V3 {
 					var n = seq.notes[j];
 					if (seqEnd < n.end) seqEnd = n.end;
 					if (n.end == 0) {
-						UnityEngine.Debug.LogError("Note is never off: " + n.note);
+						UnityEngine.Debug.LogErrorFormat("Note is never off: {0} tr {1} ch {2} start {3} seq {4} tr {5} ch {6} prog {7}",
+							n.note, n.track, n.channel, n.start, seq.index, seq.track, seq.channel, seq.program);
 					}
 				}
 				seq.end = seqEnd;
@@ -126,16 +162,20 @@ namespace Midif.V3 {
 			programGroups = programGroupDict.Keys.ToArray();
 		}
 
-		void NoteOff(Sequence seq, int tick, byte note) {
+		void NoteOff(Sequence seq, int tick, float seconds, byte note) {
 			for (int i = seq.notes.Count - 1; i >= 0; i--) {
 				var n = seq.notes[i];
-				if (n.note == note && n.end == 0) {
+				if (n.note == note && n.end == 0 && n.start != tick) {
 					n.end = tick;
 					n.duration = tick - n.start;
+					n.endSeconds = seconds;
+					n.durationSeconds = seconds - n.startSeconds;
+					//UnityEngine.Debug.LogFormat("  emit {0} start {1} duration {2} seconds {3:F2}", n.note, n.start, n.duration, n.durationSeconds);
 					return;
 				}
 			}
-			UnityEngine.Debug.LogError("Cannot find the note to turn off: " + note);
+			UnityEngine.Debug.LogErrorFormat("Cannot find the note to turn off: {0} seq {1} tr {2} ch {3} prog {4} tick {5}",
+				note, seq.index, seq.track, seq.channel, seq.program, tick);
 		}
 
 		Sequence SwitchWorkingSequence(Sequence seq, int track, byte channel, byte program) {

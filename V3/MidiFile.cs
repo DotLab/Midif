@@ -3,13 +3,15 @@ using System.Collections.Generic;
 
 namespace Midif.V3 {
 	public sealed class MidiFile {
-		public short format;
-		public short trackCount;
-		public short ticksPerBeat;
+		public readonly short format;
+		public readonly short trackCount;
+		public readonly short ticksPerBeat;
 
-		public byte[] bytes;
-		public MidiEvent[][] tracks;
-		public int[] trackLengths;
+		public readonly byte[] bytes;
+		public readonly MidiEvent[][] tracks;
+		public readonly MidiEvent[] combinedTrack;
+		public readonly int[] trackLengths;
+		public readonly int[] trackTicks;
 
 		public MidiFile(byte[] bytes) {
 			this.bytes = bytes;
@@ -26,14 +28,16 @@ namespace Midif.V3 {
 			trackCount = BitBe.ReadInt16(bytes, ref i);
 			tracks = new MidiEvent[trackCount][];
 			trackLengths = new int[trackCount];
+			trackTicks = new int[trackCount];
 			// <division> 2 bytes
 			ticksPerBeat = BitBe.ReadInt16(bytes, ref i);
 			// end chunk
 			i = ii + length;
 
 			byte runingStatus = 0;
+			var combinedEventList = new List<MidiEvent>();
 			for (short j = 0, count = trackCount; j < count; j += 1) {
-				var track = new List<MidiEvent>();
+				var trackEventList = new List<MidiEvent>();
 
 				// "MTrk" 4 bytes
 				i += 4;
@@ -43,33 +47,47 @@ namespace Midif.V3 {
 				// <track_event>
 				while (i < ii + length) {
 					int delta = BitBe.ReadVlv(bytes, ref i);
+					trackTicks[j] += delta;
+					int trackTick = trackTicks[j];
 					byte statusByte = Bit.ReadByte(bytes, ref i);
 					int dataLength;
 					if (statusByte < 0x80) {  // running status
 						dataLength = GetMidiEventLength(runingStatus);
-						track.Add(new MidiEvent(delta, runingStatus, 0, i - 1, dataLength, bytes));
+						trackEventList   .Add(new MidiEvent(j, delta, trackTick, runingStatus, 0, i - 1, dataLength, bytes));
+						combinedEventList.Add(new MidiEvent(j, delta, trackTick, runingStatus, 0, i - 1, dataLength, bytes));
 						dataLength -= 1;
 					} else if (statusByte < 0xf0) {  // midi events
 						runingStatus = statusByte;
 						dataLength = GetMidiEventLength(statusByte);
-						track.Add(new MidiEvent(delta, statusByte, 0, i, dataLength, bytes));
+						trackEventList   .Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
+						combinedEventList.Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
 					} else if (statusByte == 0xf0 || statusByte == 0xf7) {  // sysex events | escape sequences
 						dataLength = BitBe.ReadVlv(bytes, ref i);
-						track.Add(new MidiEvent(delta, statusByte, 0, i, dataLength, bytes));
+						trackEventList   .Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
+						combinedEventList.Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
 					} else if (statusByte == 0xff) {  // meta events
 						byte type = Bit.ReadByte(bytes, ref i);
 						dataLength = BitBe.ReadVlv(bytes, ref i);
-						track.Add(new MidiEvent(delta, statusByte, type, i, dataLength, bytes));
+						trackEventList   .Add(new MidiEvent(j, delta, trackTick, statusByte, type, i, dataLength, bytes));
+						combinedEventList.Add(new MidiEvent(j, delta, trackTick, statusByte, type, i, dataLength, bytes));
 					} else {
 						return;
 					}
 					i += dataLength;
 				}
-				tracks[j] = track.ToArray();
-				trackLengths[j] = track.Count;
+				tracks[j] = trackEventList.ToArray();
+				trackLengths[j] = trackEventList.Count;
 				// end chunk
 				i = ii + length;
 			}
+
+			combinedEventList.Sort((a, b) => {
+				if (a.tick == b.tick) {
+					return a.track.CompareTo(b.track);
+				}
+				return a.tick.CompareTo(b.tick);
+			});
+			combinedTrack = combinedEventList.ToArray();
 		}
 	
 		static int GetMidiEventLength(byte statusByte) {
