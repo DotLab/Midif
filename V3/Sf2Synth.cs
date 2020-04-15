@@ -838,15 +838,14 @@ namespace Midif.V3 {
 			float channelGainLeft = channelGain * table.pan2Left[pan];
 			float channelGainRight = channelGain * table.pan2Right[pan];
 
-			// float gain = table.volm2Gain[voices[i].velocity];
-			float gain = voices[i].velocity * Table.VelcRecip;
+			float gain = table.volm2Gain[voices[i].velocity];
+			//float gain = voices[i].velocity * Table.VelcRecip;
 			// float gain = 1;
 			voices[i].channelGainLeft = channelGainLeft * gain;
 			voices[i].channelGainRight = channelGainRight * gain;
 		}
 
 		void UpdateChannelGain(int channel) {
-			UnityEngine.Debug.Log("update channel gain " + channel);
 			byte pan = channels[channel].pan;
 			byte volume = channels[channel].volume;
 			byte expression = channels[channel].expression;

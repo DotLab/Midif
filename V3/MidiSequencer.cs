@@ -123,7 +123,7 @@ namespace Midif.V3 {
 				synth.Controller(channel, b1, b2);
 				break;
 			case 0xc:  // program change
-				Debug.LogFormat("program change: {0} {1}", channel, b1);
+				//Debug.LogFormat("program change: {0} {1}", channel, b1);
 				synth.ProgramChange(channel, b1);
 				break;
 			case 0xd:  // channel pressure

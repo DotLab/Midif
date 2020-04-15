@@ -35,7 +35,6 @@ namespace Midif.V3 {
 			i = ii + length;
 
 			byte runingStatus = 0;
-			var combinedEventList = new List<MidiEvent>();
 			for (short j = 0, count = trackCount; j < count; j += 1) {
 				var trackEventList = new List<MidiEvent>();
 
@@ -45,6 +44,7 @@ namespace Midif.V3 {
 				length = BitBe.ReadInt32(bytes, ref i);
 				ii = i;
 				// <track_event>
+				int k = 0;
 				while (i < ii + length) {
 					int delta = BitBe.ReadVlv(bytes, ref i);
 					trackTicks[j] += delta;
@@ -53,27 +53,24 @@ namespace Midif.V3 {
 					int dataLength;
 					if (statusByte < 0x80) {  // running status
 						dataLength = GetMidiEventLength(runingStatus);
-						trackEventList   .Add(new MidiEvent(j, delta, trackTick, runingStatus, 0, i - 1, dataLength, bytes));
-						combinedEventList.Add(new MidiEvent(j, delta, trackTick, runingStatus, 0, i - 1, dataLength, bytes));
+						trackEventList.Add(new MidiEvent(j, k, delta, trackTick, runingStatus, 0, i - 1, dataLength, bytes));
 						dataLength -= 1;
 					} else if (statusByte < 0xf0) {  // midi events
 						runingStatus = statusByte;
 						dataLength = GetMidiEventLength(statusByte);
-						trackEventList   .Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
-						combinedEventList.Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
+						trackEventList.Add(new MidiEvent(j, k, delta, trackTick, statusByte, 0, i, dataLength, bytes));
 					} else if (statusByte == 0xf0 || statusByte == 0xf7) {  // sysex events | escape sequences
 						dataLength = BitBe.ReadVlv(bytes, ref i);
-						trackEventList   .Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
-						combinedEventList.Add(new MidiEvent(j, delta, trackTick, statusByte, 0, i, dataLength, bytes));
+						trackEventList.Add(new MidiEvent(j, k, delta, trackTick, statusByte, 0, i, dataLength, bytes));
 					} else if (statusByte == 0xff) {  // meta events
 						byte type = Bit.ReadByte(bytes, ref i);
 						dataLength = BitBe.ReadVlv(bytes, ref i);
-						trackEventList   .Add(new MidiEvent(j, delta, trackTick, statusByte, type, i, dataLength, bytes));
-						combinedEventList.Add(new MidiEvent(j, delta, trackTick, statusByte, type, i, dataLength, bytes));
+						trackEventList.Add(new MidiEvent(j, k, delta, trackTick, statusByte, type, i, dataLength, bytes));
 					} else {
 						return;
 					}
 					i += dataLength;
+					k += 1;
 				}
 				tracks[j] = trackEventList.ToArray();
 				trackLengths[j] = trackEventList.Count;
@@ -81,8 +78,15 @@ namespace Midif.V3 {
 				i = ii + length;
 			}
 
+			var combinedEventList = new List<MidiEvent>();
+			for (int j = 0; j < trackCount; j++) {
+				combinedEventList.AddRange(tracks[j]);
+			}
 			combinedEventList.Sort((a, b) => {
 				if (a.tick == b.tick) {
+					if (a.track == b.track) {
+						return a.index.CompareTo(b.index);
+					}
 					return a.track.CompareTo(b.track);
 				}
 				return a.tick.CompareTo(b.tick);
